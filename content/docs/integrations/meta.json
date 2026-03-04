@@ -1,6 +1,6 @@
 {
   "pages": [
-    "routers",
+    "adapters",
     "custom-routes",
     "middleware",
     "hooks",
