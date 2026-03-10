@@ -1,15 +1,16 @@
 {
   "pages": [
-    "config-manager",
-    "secondary-storage",
-    "email",
-    "email-password",
-    "oauth2",
-    "csrf",
-    "session",
-    "jwt",
+    "admin",
     "bearer",
+    "config-manager",
+    "csrf",
+    "email-password",
+    "email",
+    "jwt",
+    "magic-link",
+    "oauth2",
     "ratelimit",
-    "magic-link"
+    "secondary-storage",
+    "session"
   ]
 }

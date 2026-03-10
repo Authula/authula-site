@@ -1,0 +1,80 @@
+---
+title: Admin Plugin
+---
+
+This plugin provides administrative operations for managing users, accounts, sessions, and user impersonation. It enables system administrators to perform CRUD operations on users and accounts, manage user and session states (banning, revoking sessions), control impersonation activities and more.
+
+## Standalone Mode
+
+```toml
+[plugins.admin]
+enabled = true
+impersonation_max_expires_in = "15m"
+```
+
+## Library Mode
+
+```go
+import (
+  adminplugin "github.com/GoBetterAuth/go-better-auth/v2/plugins/admin"
+  adminplugintypes "github.com/GoBetterAuth/go-better-auth/v2/plugins/admin/types"
+)
+
+adminplugin.New(adminplugintypes.AdminPluginConfig{
+  Enabled: true,
+  ImpersonationMaxExpiresIn: time.Minute * 15,
+}),
+```
+
+## Supported Methods
+
+### User Management
+
+| Method        | Endpoint                        | Description                                      |
+| ------------- | ------------------------------- | ------------------------------------------------ |
+| `CreateUser`  | `POST /admin/users`             | Create a new user.                               |
+| `GetAllUsers` | `GET /admin/users`              | Retrieve all users with cursor-based pagination. |
+| `GetUserByID` | `GET /admin/users/{user_id}`    | Fetch a specific user by ID.                     |
+| `UpdateUser`  | `PATCH /admin/users/{user_id}`  | Update user.                                     |
+| `DeleteUser`  | `DELETE /admin/users/{user_id}` | Delete a user.                                   |
+
+### Account Management
+
+| Method            | Endpoint                               | Description                                        |
+| ----------------- | -------------------------------------- | -------------------------------------------------- |
+| `CreateAccount`   | `POST /admin/users/{user_id}/accounts` | Create a new linked provider account for a user.   |
+| `GetUserAccounts` | `GET /admin/users/{user_id}/accounts`  | Retrieve all accounts associated with a user.      |
+| `GetAccountByID`  | `GET /admin/accounts/{id}`             | Fetch a specific account by ID.                    |
+| `UpdateAccount`   | `PATCH /admin/accounts/{id}`           | Update account details.                            |
+| `DeleteAccount`   | `DELETE /admin/accounts/{id}`          | Delete a user account and remove provider linkage. |
+
+### User State Management
+
+| Method                | Endpoint                              | Description                                                  |
+| --------------------- | ------------------------------------- | ------------------------------------------------------------ |
+| `GetUserState`        | `GET /admin/users/{user_id}/state`    | Retrieve user state including banned status and ban details. |
+| `UpsertUserState`     | `POST /admin/users/{user_id}/state`   | Create or update user state.                                 |
+| `DeleteUserState`     | `DELETE /admin/users/{user_id}/state` | Delete user state record.                                    |
+| `GetBannedUserStates` | `GET /admin/users/states/banned`      | Retrieve all banned users.                                   |
+| `BanUser`             | `POST /admin/users/{user_id}/ban`     | Ban a user with optional expiration time and reason.         |
+| `UnbanUser`           | `POST /admin/users/{user_id}/unban`   | Remove ban from a user.                                      |
+
+### Session State Management
+
+| Method                    | Endpoint                                    | Description                                          |
+| ------------------------- | ------------------------------------------- | ---------------------------------------------------- |
+| `GetSessionState`         | `GET /admin/sessions/{session_id}/state`    | Retrieve session state including revocation status.  |
+| `UpsertSessionState`      | `POST /admin/sessions/{session_id}/state`   | Create or update session state.                      |
+| `DeleteSessionState`      | `DELETE /admin/sessions/{session_id}/state` | Delete session state record.                         |
+| `RevokeSession`           | `POST /admin/sessions/{session_id}/revoke`  | Revoke a session with optional reason.               |
+| `GetRevokedSessionStates` | `GET /admin/sessions/states/revoked`        | Retrieve all revoked sessions with session state.    |
+| `GetUserAdminSessions`    | `GET /admin/users/{user_id}/sessions`       | Retrieve all sessions with session state for a user. |
+
+### Impersonation Management
+
+| Method                 | Endpoint                                             | Description                                              |
+| ---------------------- | ---------------------------------------------------- | -------------------------------------------------------- |
+| `GetAllImpersonations` | `GET /admin/impersonations`                          | Retrieve all active impersonations.                      |
+| `GetImpersonationByID` | `GET /admin/impersonations/{impersonation_id}`       | Fetch a specific impersonation.                          |
+| `StartImpersonation`   | `POST /admin/impersonations`                         | Begin impersonating a user as an admin with audit trail. |
+| `StopImpersonation`    | `POST /admin/impersonations/{impersonation_id}/stop` | End impersonation and restore original admin session.    |
