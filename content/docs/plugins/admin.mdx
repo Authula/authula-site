@@ -53,7 +53,8 @@ adminplugin.New(adminplugintypes.AdminPluginConfig{
 | Method                | Endpoint                              | Description                                                  |
 | --------------------- | ------------------------------------- | ------------------------------------------------------------ |
 | `GetUserState`        | `GET /admin/users/{user_id}/state`    | Retrieve user state including banned status and ban details. |
-| `UpsertUserState`     | `POST /admin/users/{user_id}/state`   | Create or update user state.                                 |
+| `CreateUserState`     | `POST /admin/users/{user_id}/state`   | Create user state.                                           |
+| `UpdateUserState`     | `PATCH /admin/users/{user_id}/state`  | Update user state.                                           |
 | `DeleteUserState`     | `DELETE /admin/users/{user_id}/state` | Delete user state record.                                    |
 | `GetBannedUserStates` | `GET /admin/users/states/banned`      | Retrieve all banned users.                                   |
 | `BanUser`             | `POST /admin/users/{user_id}/ban`     | Ban a user with optional expiration time and reason.         |
@@ -64,7 +65,8 @@ adminplugin.New(adminplugintypes.AdminPluginConfig{
 | Method                    | Endpoint                                    | Description                                          |
 | ------------------------- | ------------------------------------------- | ---------------------------------------------------- |
 | `GetSessionState`         | `GET /admin/sessions/{session_id}/state`    | Retrieve session state including revocation status.  |
-| `UpsertSessionState`      | `POST /admin/sessions/{session_id}/state`   | Create or update session state.                      |
+| `CreateSessionState`      | `POST /admin/sessions/{session_id}/state`   | Create session state.                                |
+| `UpdateSessionState`      | `PATCH /admin/sessions/{session_id}/state`  | Update session state.                                |
 | `DeleteSessionState`      | `DELETE /admin/sessions/{session_id}/state` | Delete session state record.                         |
 | `RevokeSession`           | `POST /admin/sessions/{session_id}/revoke`  | Revoke a session with optional reason.               |
 | `GetRevokedSessionStates` | `GET /admin/sessions/states/revoked`        | Retrieve all revoked sessions with session state.    |
