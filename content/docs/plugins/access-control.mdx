@@ -18,6 +18,51 @@ The plugin uses a hierarchical model: Users → Roles → Permissions, allowing 
 
 ---
 
+## Database Schema
+
+### access_control_roles Table
+
+| Column      | Type      |
+| ----------- | --------- |
+| id          | string    |
+| name        | string    |
+| description | string    |
+| is_system   | boolean   |
+| created_at  | timestamp |
+| updated_at  | timestamp |
+
+### access_control_permissions Table
+
+| Column      | Type      |
+| ----------- | --------- |
+| id          | string    |
+| key         | string    |
+| description | string    |
+| is_system   | boolean   |
+| created_at  | timestamp |
+| updated_at  | timestamp |
+
+### access_control_role_permissions Table
+
+| Column             | Type      |
+| ------------------ | --------- |
+| role_id            | string    |
+| permission_id      | string    |
+| granted_by_user_id | string    |
+| granted_at         | timestamp |
+
+### access_control_user_roles Table
+
+| Column              | Type      |
+| ------------------- | --------- |
+| user_id             | string    |
+| role_id             | string    |
+| assigned_by_user_id | string    |
+| assigned_at         | timestamp |
+| expires_at          | timestamp |
+
+---
+
 ## API Reference
 
 ### Roles Management
