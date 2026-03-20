@@ -186,33 +186,9 @@ No request body required.
 
 ---
 
-## Security Considerations
+## Database Schema
 
-1. **Secure Cookies**: In production, always set `secure_cookie = true` to ensure cookies are only sent over HTTPS.
-2. **Pending Token Expiry**: The pending token used to access verify routes expires in 10 minutes by default. Configure based on your security requirements.
-3. **Backup Codes**: Store backup codes securely. They are single-use and provide account recovery.
-4. **Trusted Devices**: Use appropriate `trusted_device_duration` values. Shorter durations increase security but require more frequent TOTP verification.
-5. **Password Verification**: Set `skip_verification_on_enable = false` to require password verification when enabling TOTP.
-
----
-
-## Event Hooks
-
-The TOTP plugin emits events for the following operations:
-
-- `totp.enabled`
-- `totp.disabled`
-- `totp.verified`
-- `totp.backup_code_used`
-- `totp.device_trusted`
-
-These events can be subscribed to via the event bus for logging, analytics, or custom business logic.
-
----
-
-## Database
-
-The TOTP plugin creates the following database tables:
+This plugin creates the following database tables:
 
 Table: `totp`
 
@@ -238,3 +214,27 @@ Table: `trusted_devices`
 | `created_at` | timestamp |     | Record creation time                     |
 
 Migrations are automatically handled when the plugin is initialized.
+
+---
+
+## Event Hooks
+
+The TOTP plugin emits events for the following operations:
+
+- `totp.enabled`
+- `totp.disabled`
+- `totp.verified`
+- `totp.backup_code_used`
+- `totp.device_trusted`
+
+These events can be subscribed to via the event bus for logging, analytics, or custom business logic.
+
+---
+
+## Security Considerations
+
+1. **Secure Cookies**: In production, always set `secure_cookie = true` to ensure cookies are only sent over HTTPS.
+2. **Pending Token Expiry**: The pending token used to access verify routes expires in 10 minutes by default. Configure based on your security requirements.
+3. **Backup Codes**: Store backup codes securely. They are single-use and provide account recovery.
+4. **Trusted Devices**: Use appropriate `trusted_device_duration` values. Shorter durations increase security but require more frequent TOTP verification.
+5. **Password Verification**: Set `skip_verification_on_enable = false` to require password verification when enabling TOTP.

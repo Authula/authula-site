@@ -40,51 +40,6 @@ accesscontrolplugin.New(accesscontrolplugintypes.AccessControlPluginConfig{
 
 ---
 
-## Database Schema
-
-### access_control_roles Table
-
-| Column      | Type      |
-| ----------- | --------- |
-| id          | string    |
-| name        | string    |
-| description | string    |
-| is_system   | boolean   |
-| created_at  | timestamp |
-| updated_at  | timestamp |
-
-### access_control_permissions Table
-
-| Column      | Type      |
-| ----------- | --------- |
-| id          | string    |
-| key         | string    |
-| description | string    |
-| is_system   | boolean   |
-| created_at  | timestamp |
-| updated_at  | timestamp |
-
-### access_control_role_permissions Table
-
-| Column             | Type      |
-| ------------------ | --------- |
-| role_id            | string    |
-| permission_id      | string    |
-| granted_by_user_id | string    |
-| granted_at         | timestamp |
-
-### access_control_user_roles Table
-
-| Column              | Type      |
-| ------------------- | --------- |
-| user_id             | string    |
-| role_id             | string    |
-| assigned_by_user_id | string    |
-| assigned_at         | timestamp |
-| expires_at          | timestamp |
-
----
-
 ## API Reference
 
 ### Roles Management
@@ -126,3 +81,50 @@ accesscontrolplugin.New(accesscontrolplugintypes.AccessControlPluginConfig{
 | `GET`       | `/access-control/users/{user_id}/permissions`     | Get all effective permissions for a user (merged from all assigned roles) |
 
 ---
+
+## Database Schema
+
+This plugin creates the following database tables:
+
+Table: `access_control_roles`
+
+| Field         | Type      | Key | Description                    |
+| ------------- | --------- | --- | ------------------------------ |
+| `id`          | string    | PK  | Unique identifier for the role |
+| `name`        | string    |     | Name of the role               |
+| `description` | string    |     | Role description               |
+| `is_system`   | boolean   |     | Whether role is system-managed |
+| `created_at`  | timestamp |     | Record creation time           |
+| `updated_at`  | timestamp |     | Record last update time        |
+
+Table: `access_control_permissions`
+
+| Field       | Type      | Key | Description                          |
+| ----------- | --------- | --- | ------------------------------------ |
+| id          | string    | PK  | Unique identifier for permission     |
+| key         | string    |     | Permission key identifier            |
+| description | string    |     | Permission description               |
+| is_system   | boolean   |     | Whether permission is system-managed |
+| created_at  | timestamp |     | Record creation time                 |
+| updated_at  | timestamp |     | Record last update time              |
+
+Table: `access_control_role_permissions`
+
+| Field              | Type      | Key | Description                      |
+| ------------------ | --------- | --- | -------------------------------- |
+| role_id            | string    | PK  | Role identifier                  |
+| permission_id      | string    | PK  | Permission identifier            |
+| granted_by_user_id | string    | FK  | User who granted the permission  |
+| granted_at         | timestamp |     | Time when permission was granted |
+
+Table: `access_control_user_roles`
+
+| Field               | Type      | Key | Description                       |
+| ------------------- | --------- | --- | --------------------------------- |
+| user_id             | string    | PK  | User identifier                   |
+| role_id             | string    | PK  | Role identifier                   |
+| assigned_by_user_id | string    | FK  | User who assigned the role        |
+| assigned_at         | timestamp |     | Time when role was assigned       |
+| expires_at          | timestamp |     | Time when role assignment expires |
+
+Migrations are automatically handled when the plugin is initialized.
