@@ -25,3 +25,11 @@ yarn-error.log*
 .env*.local
 .vercel
 next-env.d.ts
+
+# Custom
+# Exclude each agent's skills folders
+.github/skills
+.claude/skills
+.gemini/skills
+.qwen/skills
+.opencode/skills

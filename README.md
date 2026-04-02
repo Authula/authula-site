@@ -22,6 +22,16 @@ $ pnpm dev
 # Navigate to http://localhost:3000 to see the webapp.
 ```
 
+### AI
+
+If you're using AI Agents, you can run the following script to make sure all Agent Skills are available for a variety of agent CLI tools.
+
+```bash
+$ bash ./scripts/agent-skills-symlinker.sh
+```
+
+---
+
 ## Explore
 
 This project is built with [Next.js](https://nextjs.org/) and
@@ -43,6 +53,8 @@ In the project, you can see:
 A `source.config.ts` config file has been included, you can customise different options like frontmatter schema.
 
 Read the [Introduction](https://fumadocs.dev/docs/mdx) for further details.
+
+---
 
 ## Learn More
 
