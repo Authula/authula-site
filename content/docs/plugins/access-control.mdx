@@ -1,5 +1,6 @@
 ---
 title: Access Control Plugin
+description: Manage roles, permissions, and user access.
 ---
 
 ## Overview
@@ -44,13 +45,14 @@ accesscontrolplugin.New(accesscontrolplugintypes.AccessControlPluginConfig{
 
 ### Roles Management
 
-| HTTP Method | Route Path                        | Description              |
-| ----------- | --------------------------------- | ------------------------ |
-| `POST`      | `/access-control/roles`           | Create a new role        |
-| `GET`       | `/access-control/roles`           | List all available roles |
-| `GET`       | `/access-control/roles/{role_id}` | Get a role by ID         |
-| `PATCH`     | `/access-control/roles/{role_id}` | Update a role            |
-| `DELETE`    | `/access-control/roles/{role_id}` | Delete a role            |
+| HTTP Method | Route Path                                  | Description              |
+| ----------- | ------------------------------------------- | ------------------------ |
+| `POST`      | `/access-control/roles`                     | Create a new role        |
+| `GET`       | `/access-control/roles`                     | List all available roles |
+| `GET`       | `/access-control/roles/by-name/{role_name}` | Get a role by name       |
+| `GET`       | `/access-control/roles/{role_id}`           | Get a role by ID         |
+| `PATCH`     | `/access-control/roles/{role_id}`           | Update a role            |
+| `DELETE`    | `/access-control/roles/{role_id}`           | Delete a role            |
 
 ### Permissions Management
 
@@ -58,6 +60,7 @@ accesscontrolplugin.New(accesscontrolplugintypes.AccessControlPluginConfig{
 | ----------- | --------------------------------------------- | ----------------------- |
 | `POST`      | `/access-control/permissions`                 | Create a new permission |
 | `GET`       | `/access-control/permissions`                 | List all permissions    |
+| `GET`       | `/access-control/permissions/{permission_id}` | Get a permission by ID  |
 | `PATCH`     | `/access-control/permissions/{permission_id}` | Update a permission     |
 | `DELETE`    | `/access-control/permissions/{permission_id}` | Delete a permission     |
 
@@ -72,13 +75,14 @@ accesscontrolplugin.New(accesscontrolplugintypes.AccessControlPluginConfig{
 
 ### User Access & Permissions
 
-| HTTP Method | Route Path                                        | Description                                                               |
-| ----------- | ------------------------------------------------- | ------------------------------------------------------------------------- |
-| `GET`       | `/access-control/users/{user_id}/roles`           | Get all roles assigned to a user                                          |
-| `POST`      | `/access-control/users/{user_id}/roles`           | Assign a role to a user                                                   |
-| `PUT`       | `/access-control/users/{user_id}/roles`           | Replace all roles of a user (bulk update)                                 |
-| `DELETE`    | `/access-control/users/{user_id}/roles/{role_id}` | Remove a role from a user                                                 |
-| `GET`       | `/access-control/users/{user_id}/permissions`     | Get all effective permissions for a user (merged from all assigned roles) |
+| HTTP Method | Route Path                                          | Description                               |
+| ----------- | --------------------------------------------------- | ----------------------------------------- |
+| `GET`       | `/access-control/users/{user_id}/roles`             | Get all roles assigned to a user          |
+| `POST`      | `/access-control/users/{user_id}/roles`             | Assign a role to a user                   |
+| `PUT`       | `/access-control/users/{user_id}/roles`             | Replace all roles of a user (bulk update) |
+| `DELETE`    | `/access-control/users/{user_id}/roles/{role_id}`   | Remove a role from a user                 |
+| `GET`       | `/access-control/users/{user_id}/permissions`       | Get all permissions for a user            |
+| `POST`      | `/access-control/users/{user_id}/permissions/check` | Check whether a user has permissions      |
 
 ---
 
@@ -128,3 +132,51 @@ Table: `access_control_user_roles`
 | expires_at          | timestamp? | -   | Time when role assignment expires |
 
 Migrations are automatically handled when the plugin is initialized.
+
+---
+
+## Plugin Capabilities
+
+- `access_control.enforce`: Enforce access control on an API endpoint
+
+#### Example Usage
+
+`Standalone mode`:
+
+```toml
+[[route_mappings]]
+path = "/admin/users"
+method = "GET"
+# Make sure to include an auth capability plugin (e.g. session.auth) before the access control plugin
+# to ensure the user is authenticated before enforcing permissions.
+plugins = ["session.auth", "access_control.enforce"]
+permissions = ["users.read"] # Specify the required permission to access this route
+```
+
+`Library mode`:
+
+```go
+import (
+  authulaconfig "github.com/Authula/authula/config"
+  authulamodels "github.com/Authula/authula/models"
+  sessionplugin "github.com/Authula/authula/plugins/session"
+  accesscontrolplugin "github.com/Authula/authula/plugins/access-control"
+)
+
+config := authulaconfig.NewConfig(
+  // Other config options...
+  authulaconfig.WithRouteMappings([]authulamodels.RouteMapping{
+    {
+      Method: "GET",
+      Path:   "/admin/users",
+      Plugins: []string{
+        sessionplugin.HookIDSessionAuth.String(),
+        accesscontrolplugin.HookIDAccessControlEnforce.String(),
+      },
+      Permissions: []string{
+        "users.read",
+      },
+    },
+  }),
+)
+```

@@ -1,10 +1,13 @@
 ---
 title: Email Plugin
+description: Send transactional emails with support for multiple providers.
 ---
+
+## Overview
 
 The Email Plugin provides transactional email capabilities with support for multiple providers and automatic failover.
 
-## Features
+### Features
 
 - **Multi-Provider Support**: Use SMTP or Resend as your email provider
 - **Automatic Fallback**: Configure a backup provider that activates when the primary fails
@@ -12,32 +15,49 @@ The Email Plugin provides transactional email capabilities with support for mult
 - **Template Ready**: Built-in support for Go template rendering (html/text)
 - **Runtime Configuration**: Update provider settings without restarting
 
+---
+
 ## Configuration
 
-Add the email plugin to your TOML configuration:
+`Standalone Mode:`
 
 ```toml
 [plugins.email]
 enabled = true
-provider = "smtp"           # Options: "smtp", "resend"
-fallback_provider = ""      # Optional backup: "smtp" or "resend"
+provider = "smtp" # Options: "smtp", "resend"
+# You can set/override `from_address` using the `FROM_ADDRESS` environment variable.
 from_address = "noreply@example.com"
+tls_mode = "starttls" # Options: "off", "starttls", "tls"
+# Optional: Fallback provider if primary fails
+# fallback_provider = "resend" # Optional backup: "smtp" or "resend"
+
+# SMTP Configuration (when provider = "smtp")
+[plugins.email.smtp]
+host = ""
+port = 2525 # Options: 25, 465, 587, 2525,
+# "user" and "pass" are optional in development if using a local SMTP server that doesn't require authentication
+user = ""
+pass = ""
+
+# Resend Configuration (when provider = "resend")
+# [plugins.email.resend]
+# NOTE: it is recommended to set the Resend API key via the RESEND_API_KEY environment variable rather than hardcoding it here.
+# api_key = ""
 ```
 
-You can override `from_address` using the `FROM_ADDRESS` environment variable.
-
-## Library Mode
-
-To use the plugin programmatically, instantiate it as part of the plugins array when creating a new Authula instance:
+`Library Mode:`
 
 ```go
 emailplugin.New(emailplugintypes.EmailPluginConfig{
   Enabled:          true,
   Provider:         emailplugintypes.ProviderResend,
-  FallbackProvider: emailplugintypes.ProviderSMTP,
   FromAddress:      "from@example.com",
+  TLSMode:          emailplugintypes.SMTPTLSModeStartTLS,
+  FallbackProvider: emailplugintypes.ProviderSMTP,
 })
 ```
+
+---
 
 ## Environment Variables
 
@@ -58,6 +78,8 @@ SMTP_PASS="your-app-password"
 RESEND_API_KEY="re_xxxxxxxxxxxx"
 ```
 
+---
+
 ## Provider Details
 
 ### SMTP Provider
@@ -68,16 +90,8 @@ Connects to any SMTP-compliant server (Gmail, SendGrid, AWS SES, etc.). Uses opp
 
 Integrates with [Resend](https://resend.com) email API for simple API-based sending with built-in deliverability optimization.
 
-## Fallback Behavior
+---
 
-When a fallback provider is configured, emails are first attempted via the primary provider. If that fails, the plugin automatically tries the fallback provider.
+## Notes
 
-Example configuration with fallback:
-
-```toml
-[plugins.email]
-enabled = true
-provider = "resend"         # Primary: Use Resend for deliverability
-fallback_provider = "smtp"  # Fallback: Use SMTP if Resend fails
-from_address = "noreply@example.com"
-```
+- When a fallback provider is configured, emails are first attempted via the primary provider. If that fails, the plugin automatically tries the fallback provider.

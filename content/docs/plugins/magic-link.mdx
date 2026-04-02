@@ -1,10 +1,13 @@
 ---
 title: Magic Link Plugin
+description: Passwordless authentication using email-based magic links.
 ---
+
+## Overview
 
 The Magic Link plugin provides passwordless authentication using email-based magic links. Users receive a secure link via email that they can click to sign in without passwords.
 
-## Features
+### Features
 
 - Passwordless authentication via email
 - Secure token-based verification
@@ -12,9 +15,11 @@ The Magic Link plugin provides passwordless authentication using email-based mag
 - Optional user registration on first sign-in
 - Custom email sending function support
 
-## Standalone Mode
+---
 
-In standalone mode, configure the plugin in your `config.toml`:
+## Configuration
+
+`Standalone Mode:`
 
 ```toml
 [plugins.magic_link]
@@ -23,36 +28,27 @@ expires_in = "15m"  # Token expiration time
 disable_sign_up = false  # Allow new user registration
 ```
 
-## Library Mode
-
-Embed the plugin in your Go application:
+`Library Mode:`
 
 ```go
 import (
-  authula "github.com/Authula/authula"
-  authulaconfig "github.com/Authula/authula/config"
-  authulamodels "github.com/Authula/authula/models"
   magiclinkplugin "github.com/Authula/authula/plugins/magic-link"
   magiclinkplugintypes "github.com/Authula/authula/plugins/magic-link/types"
 )
 
-config := authulaconfig.NewConfig(/*...*/)
-auth := authula.New(authula.AuthConfig{
-  Config: config,
-  Plugins: []authulamodels.Plugin{
-    magiclinkplugin.New(magiclinkplugintypes.MagicLinkPluginConfig{
-      Enabled: true,
-      ExpiresIn: 15 * time.Minute,
-      DisableSignUp: false,
-      // Optional: Custom email sender function
-      // SendMagicLinkVerificationEmail func(email string, url string, token string) error {
-      //   // Implement your email sending logic here, e.g. using an email service provider
-      //   return nil
-      // }
-    }),
+magiclinkplugin.New(magiclinkplugintypes.MagicLinkPluginConfig{
+  Enabled: true,
+  ExpiresIn: 15 * time.Minute,
+  DisableSignUp: false,
+  // Optional: Custom email sender function
+  SendMagicLinkVerificationEmail func(email string, url string, token string) error {
+    // Implement your email sending logic here, e.g. using an email service provider
+    return nil
   },
 })
 ```
+
+---
 
 ## API Endpoints
 
@@ -92,13 +88,17 @@ Request body:
 
 Exchanges the verified token for user session and authentication.
 
-## Usage Flow
+---
+
+## Flow
 
 1. Client calls `/magic-link/sign-in` with user's email
 2. User receives email with link containing verification token
 3. User clicks link, which calls `/magic-link/verify` and the token is verified
 4. Client then receives another token to exchange with a session by calling `/magic-link/exchange`
 5. User is now signed in with session established
+
+---
 
 ## Client Plugin
 

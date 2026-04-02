@@ -42,7 +42,7 @@ import (
 	totpplugintypes "github.com/Authula/authula/plugins/totp/types"
 )
 
-totpPlugin := totpplugin.New(totpplugintypes.TOTPPluginConfig{
+totpplugin.New(totpplugintypes.TOTPPluginConfig{
   Enabled:                        true,
   SkipVerificationOnEnable:       false,
   BackupCodeCount:                10,
@@ -228,6 +228,24 @@ The TOTP plugin emits events for the following operations:
 - `totp.device_trusted`
 
 These events can be subscribed to via the event bus for logging, analytics, or custom business logic.
+
+---
+
+## Route Mappings
+
+```toml
+# If using TOTP plugin, keep /totp/verify and /totp/verify-backup-code accessible
+# to the pending-token flow (do not require an existing session cookie).
+[[route_mappings]]
+path = "/totp/verify"
+method = "POST"
+plugins = ["session.auth.optional"]
+
+[[route_mappings]]
+path = "/totp/verify-backup-code"
+method = "POST"
+plugins = ["session.auth.optional"]
+```
 
 ---
 
