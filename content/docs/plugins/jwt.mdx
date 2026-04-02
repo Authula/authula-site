@@ -1,65 +1,122 @@
 ---
 title: JWT Plugin
+description: JWKS-based JWT authentication with automatic key rotation and refresh token support for SPAs and mobile applications
 ---
 
-The JWT Plugin provides JWKS-based JWT authentication with automatic key rotation and refresh token support for SPAs and mobile applications.
+## Overview
 
-## Features
+The JWT plugin provides JWKS-based JWT authentication with automatic key rotation and refresh token support. It is designed for SPAs and mobile applications, offering short-lived access tokens with long-lived refresh tokens, multiple signing algorithms, and public key distribution via a JWKS endpoint.
 
-- **Multiple Signing Algorithms**: EdDSA (default), RS256, PS256, ES256, ES512
-- **Automatic Key Rotation**: Rotates signing keys on configurable intervals with grace periods
-- **Token Pairs**: Short-lived access tokens (15m default) with long-lived refresh tokens (7d default)
-- **JWKS Endpoint**: Public key distribution via `/.well-known/jwks.json` for token verification
-- **Token Blacklisting**: Revoke tokens immediately when needed (requires Secondary Storage plugin)
-- **Refresh Token Rotation**: New refresh token issued on each refresh for security
-- **Grace Periods**: Smooth transitions during key rotation and refresh token reuse detection
+### Features
 
-## Standalone Mode
+- **Multiple Signing Algorithms** — EdDSA (default), RS256, PS256, ES256, ES512, ECDH-ES
+- **Automatic Key Rotation** — Rotates signing keys on configurable intervals with grace periods
+- **Token Pairs** — Short-lived access tokens (15m default) with long-lived refresh tokens (7d default)
+- **JWKS Endpoint** — Public key distribution via `/.well-known/jwks.json` for token verification
+- **Token Blacklisting** — Revoke tokens immediately when needed (requires Secondary Storage plugin)
+- **Refresh Token Rotation** — New refresh token issued on each refresh for security
+- **Grace Periods** — Smooth transitions during key rotation and refresh token reuse detection
+
+---
+
+## Configuration
+
+### Standalone Mode
 
 ```toml
 [plugins.jwt]
 enabled = true
-algorithm = "eddsa"                    # Options: eddsa, rs256, ps256, es256, es512
-key_rotation_interval = "720h"         # 30 days - how often to rotate keys
-key_rotation_grace_period = "1h"       # Grace period for old key validity after rotation
-expires_in = "15m"                     # Access token TTL (15 minutes)
-refresh_expires_in = "168h"            # Refresh token TTL (7 days)
-jwks_cache_ttl = "24h"                 # JWKS cache TTL
-refresh_grace_period = "10s"           # Grace period for refresh token reuse detection
+algorithm = "eddsa"
+key_rotation_interval = "720h"
+key_rotation_grace_period = "1h"
+expires_in = "15m"
+refresh_expires_in = "168h"
+jwks_cache_ttl = "24h"
+refresh_grace_period = "10s"
 ```
 
-## Library Mode
-
-To use the plugin programmatically, instantiate it as part of the plugins array when creating a new Authula instance:
+### Library Mode
 
 ```go
+import (
+	jwtplugin "github.com/Authula/authula/plugins/jwt"
+	jwtplugintypes "github.com/Authula/authula/plugins/jwt/types"
+)
+
 jwtplugin.New(jwtplugintypes.JWTPluginConfig{
-  Enabled:                true,
-  Algorithm:              jwtplugintypes.JWTAlgEdDSA,
-  ExpiresIn:              time.Minute,
-  KeyRotationInterval:    time.Hour * 24 * 30,
-  KeyRotationGracePeriod: time.Hour,
-  RefreshExpiresIn:       time.Hour * 24 * 7,
-  JWKSCacheTTL:           time.Minute * 5,
-  RefreshGracePeriod:     time.Minute,
-})
+	Enabled:                true,
+	Algorithm:              jwtplugintypes.JWTAlgEdDSA,
+	ExpiresIn:              15 * time.Minute,
+	KeyRotationInterval:    720 * time.Hour,
+	KeyRotationGracePeriod: time.Hour,
+	RefreshExpiresIn:       168 * time.Hour,
+	JWKSCacheTTL:           24 * time.Hour,
+	RefreshGracePeriod:     10 * time.Second,
+}),
 ```
 
-## Available Routes
+### Configuration Options
 
-| Path                     | Method | Description                                 |
-| ------------------------ | ------ | ------------------------------------------- |
-| `/.well-known/jwks.json` | GET    | Public JWKS endpoint for token verification |
-| `/token/refresh`         | POST   | Exchange refresh token for new token pair   |
+| Option                      | Type     | Default   | Description                                                    |
+| --------------------------- | -------- | --------- | -------------------------------------------------------------- |
+| `enabled`                   | boolean  | `true`    | Enable or disable the plugin                                   |
+| `algorithm`                 | string   | `"eddsa"` | Signing algorithm: `eddsa`, `rs256`, `ps256`, `es256`, `es512` |
+| `key_rotation_interval`     | duration | `"720h"`  | How often to rotate signing keys (30 days)                     |
+| `key_rotation_grace_period` | duration | `"1h"`    | Grace period for old key validity after rotation               |
+| `expires_in`                | duration | `"15m"`   | Access token TTL                                               |
+| `refresh_expires_in`        | duration | `"168h"`  | Refresh token TTL (7 days)                                     |
+| `jwks_cache_ttl`            | duration | `"24h"`   | JWKS cache TTL                                                 |
+| `refresh_grace_period`      | duration | `"10s"`   | Grace period for refresh token reuse detection                 |
 
-## Available Hooks
+---
 
-| Hook ID            | Stage      | Purpose                                                            |
-| ------------------ | ---------- | ------------------------------------------------------------------ |
-| _(auto-issued)_    | After      | Automatically generates JWT tokens after successful authentication |
-| `jwt.respond_json` | OnResponse | Sends tokens in JSON response when enabled on route                |
+## API Reference
 
-## Token Lifecycle
+| Method | Path                     | Description                                 |
+| ------ | ------------------------ | ------------------------------------------- |
+| `GET`  | `/.well-known/jwks.json` | Public JWKS endpoint for token verification |
+| `POST` | `/token/refresh`         | Exchange refresh token for new token pair   |
+
+---
+
+## Database Schema
+
+### Table: `jwt_keys`
+
+| Field         | Type      | Key | Description                                      |
+| ------------- | --------- | --- | ------------------------------------------------ |
+| `id`          | string    | PK  | Unique identifier for the key                    |
+| `key_id`      | string    | -   | JWKS key ID (kid)                                |
+| `public_key`  | string    | -   | PEM-encoded public key                           |
+| `private_key` | string    | -   | PEM-encoded private key                          |
+| `algorithm`   | string    | -   | Signing algorithm used                           |
+| `created_at`  | timestamp | -   | Key creation time                                |
+| `expires_at`  | timestamp | -   | Key expiration time (after grace period)         |
+| `is_active`   | boolean   | -   | Whether this key is currently active for signing |
+
+### Table: `jwt_refresh_tokens`
+
+| Field        | Type      | Key | Description                                |
+| ------------ | --------- | --- | ------------------------------------------ |
+| `id`         | string    | PK  | Unique identifier for the refresh token    |
+| `user_id`    | string    | FK  | Reference to the user                      |
+| `session_id` | string    | FK  | Reference to the session                   |
+| `token`      | string    | -   | Hashed refresh token                       |
+| `expires_at` | timestamp | -   | Token expiration time                      |
+| `revoked_at` | timestamp | -   | When the token was revoked (if applicable) |
+| `created_at` | timestamp | -   | Record creation time                       |
+
+> Migrations are automatically handled when the plugin is initialized.
+
+---
+
+## Plugin Capabilities
+
+The JWT plugin provides the following capabilities:
+
+- **jwt.respond_json** — Sends JWT tokens in JSON response after successful authentication
+
+### Token Lifecycle
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌──────────────┐
@@ -93,19 +150,7 @@ jwtplugin.New(jwtplugintypes.JWTPluginConfig{
                    └──────────────┘
 ```
 
-### Lifecycle Phases
-
-**1. Token Issuance**: Automatically triggered after successful authentication. Generates both access and refresh tokens.
-
-**2. API Calls**: Access tokens are used for API requests. They expire after 15 minutes (configurable).
-
-**3. Token Refresh**: When the access token expires, use the refresh token at `/token/refresh` to get a new token pair.
-
-**4. Token Expiration**: Refresh tokens expire after 7 days (configurable). Users must re-authenticate when both tokens expire.
-
-**5. Sign Out**: Tokens can be revoked by adding them to the blacklist (requires Secondary Storage plugin).
-
-## Key Rotation Lifecycle
+### Key Rotation Lifecycle
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌──────────────┐
@@ -129,26 +174,14 @@ jwtplugin.New(jwtplugintypes.JWTPluginConfig{
                                   └──────────────┘
 ```
 
-### Rotation Phases
-
-**1. Key Generation**: On initialization, a new key pair is generated and stored in the database.
-
-**2. Active Signing**: The active key signs all new tokens. Public keys are available via the JWKS endpoint.
-
-**3. Rotation Triggered**: When the rotation interval expires, a new key is generated. The old key enters a grace period where it can still verify tokens.
-
-**4. Grace Period**: Old tokens remain valid during the grace period (1 hour default), ensuring zero-downtime rotation.
-
-**5. Expiration**: After the grace period, the old key is no longer used. Tokens signed with it will fail verification.
-
-## How to Use
+### How to Use
 
 Enable JWT responses on authentication routes:
 
 ```toml
 [[route_mappings]]
-path = "/auth/sign-in"
 method = "POST"
+path = "/auth/sign-in"
 plugins = ["bearer.auth.optional", "jwt.respond_json"]
 ```
 
@@ -161,30 +194,34 @@ After successful authentication, the response will include:
 }
 ```
 
-## Security Features
-
-- **Algorithm Agility**: Choose the best algorithm for your security requirements
-- **Automatic Key Rotation**: Reduces risk of key compromise with configurable intervals
-- **Refresh Token Rotation**: Each refresh issues a new refresh token, invalidating the old one
-- **Reuse Detection**: The grace period helps detect and prevent refresh token replay attacks
-- **Token Blacklisting**: Immediately revoke tokens by adding them to the blacklist
-- **JWKS Caching**: Improves verification performance with configurable cache TTL
-
-## Algorithm Support
+### Algorithm Support
 
 | Algorithm | Type                            | Recommended Use                     |
 | --------- | ------------------------------- | ----------------------------------- |
-| EdDSA     | Edwards-curve Digital Signature | **Default** - Fast, secure, modern  |
+| EdDSA     | Edwards-curve Digital Signature | **Default** — Fast, secure, modern  |
 | RS256     | RSA with SHA-256                | Legacy compatibility                |
 | PS256     | RSA-PSS with SHA-256            | Enhanced RSA security               |
 | ES256     | ECDSA with P-256                | Mobile/IoT constrained environments |
 | ES512     | ECDSA with P-521                | Maximum security requirements       |
+| ECDH-ES   | Elliptic Curve Diffie-Hellman   | Key exchange only, not for signing  |
 
-**Note**: ECDH-ES is available for key exchange but cannot be used for JWT signing.
+**Note**: ECDH-ES is available for key exchange but cannot be used for JWT signing. May be removed in a future version.
+
+---
 
 ## Dependencies
 
-- **Session Service**: Required for session management
-- **Token Service**: Required for token hashing and generation
-- **Secondary Storage** (optional): Enables token blacklisting for immediate revocation
-- **Database**: Stores JWKS keys and refresh tokens
+- **Secondary Storage** (optional) — Enables token blacklisting for immediate revocation
+
+---
+
+## Security Recommendations
+
+- **Use EdDSA by Default** — EdDSA provides the best balance of security and performance for most use cases
+- **Enable Key Rotation** — Set `key_rotation_interval` to 30 days or less for production environments
+- **Short Access Token TTL** — Keep `expires_in` short (15 minutes or less) to minimize exposure if tokens are compromised
+- **Refresh Token Rotation** — Each refresh issues a new refresh token, invalidating the old one to detect replay attacks
+- **Token Blacklisting** — Use the Secondary Storage plugin to enable immediate token revocation on sign-out
+- **Secure JWKS Caching** — Set appropriate `jwks_cache_ttl` to balance performance and key rotation responsiveness
+- **HTTPS Required** — Always use HTTPS in production to protect tokens in transit
+- **Grace Period Tuning** — Adjust `key_rotation_grace_period` and `refresh_grace_period` based on your token distribution needs
