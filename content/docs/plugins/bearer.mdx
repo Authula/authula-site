@@ -1,51 +1,76 @@
 ---
 title: Bearer Plugin
+description: Bearer token authentication by validating JWT access tokens from Authorization headers
 ---
 
-The Bearer Plugin provides Bearer token authentication by validating JWT access tokens from Authorization headers.
+## Overview
 
-## Features
+The Bearer plugin provides Bearer token authentication by validating JWT access tokens from `Authorization` headers. It extracts tokens from the `Authorization: Bearer <token>` header format and validates them using the JWT plugin service, supporting both required and optional authentication modes.
 
-- **Authorization Header Validation**: Extracts and validates `Authorization: Bearer <token>` headers
-- **JWT Integration**: Uses the JWT plugin service for token validation
-- **Dual Authentication Modes**: Required authentication (returns 401) or optional authentication (silent)
-- **Cooperative Authentication**: Works alongside other auth plugins without conflicts
-- **Configurable Header**: Customize the header name (default: Authorization)
+### Features
 
-## Standalone Mode
+- **Authorization Header Validation** — Extracts and validates `Authorization: Bearer <token>` headers
+- **JWT Integration** — Uses the JWT plugin service for token validation
+- **Dual Authentication Modes** — Required authentication (returns 401) or optional authentication (silent)
+- **Cooperative Authentication** — Works alongside other auth plugins without conflicts
+- **Configurable Header** — Customize the header name (default: `Authorization`)
+- **Stateless Validation** — No server-side session storage required
+
+---
+
+## Configuration
+
+### Standalone Mode
 
 ```toml
 [plugins.bearer]
 enabled = true
-header_name = "Authorization"  # Customizable header name
+header_name = "Authorization"
 ```
 
-## Library Mode
-
-To use the plugin programmatically, instantiate it as part of the plugins array when creating a new Authula instance:
+### Library Mode
 
 ```go
-bearerplugin.New(bearerplugin.BearerPluginConfig{
+import (
+	bearerplugin "github.com/Authula/authula/plugins/bearer"
+	bearerplugintypes "github.com/Authula/authula/plugins/bearer/types"
+)
+
+bearerplugin.New(bearerplugintypes.BearerPluginConfig{
 	Enabled:    true,
-	HeaderName: "Authorization", // optional, defaults to "Authorization"
+	HeaderName: "Authorization",
 }),
 ```
 
-## Available Hooks
+---
 
-| Hook ID                | Stage  | Purpose                                                                     |
-| ---------------------- | ------ | --------------------------------------------------------------------------- |
-| `bearer.auth`          | Before | Validates Bearer token; returns 401 Unauthorized if invalid or missing      |
-| `bearer.auth.optional` | Before | Validates Bearer token if present; silently continues if invalid or missing |
+## API Reference
 
-## Authentication Flow
+The Bearer plugin does not expose any HTTP endpoints. It operates as a middleware plugin that validates incoming requests via hooks.
+
+---
+
+## Database Schema
+
+The Bearer plugin does not create any database tables. Token validation is performed statelessly using the JWT plugin service.
+
+---
+
+## Plugin Capabilities
+
+The Bearer plugin provides the following capabilities:
+
+- **bearer.auth** — Required authentication hook that validates Bearer tokens and returns 401 if invalid or missing
+- **bearer.auth.optional** — Optional authentication hook that validates Bearer tokens if present and silently continues if invalid or missing
+
+### Authentication Flow
 
 ```
 Request with Header
        │
        ▼
 ┌───────────────┐
-│ Authorization	│
+│ Authorization │
 │ Bearer <token>│
 └──────┬────────┘
        │
@@ -76,15 +101,15 @@ in ctx   Error
 
 ### Flow Description
 
-**1. Header Extraction**: The plugin extracts the Authorization header from the request and parses the Bearer token format.
+**1. Header Extraction** — The plugin extracts the `Authorization` header from the request and parses the `Bearer <token>` format.
 
-**2. Token Validation**: The extracted token is validated using the JWT service, which verifies the signature, expiration, and blacklist status.
+**2. Token Validation** — The extracted token is validated using the JWT service, which verifies the signature, expiration, and blacklist status.
 
-**3. Success Path**: Valid tokens result in the UserID being set in the request context, allowing the request to proceed.
+**3. Success Path** — Valid tokens result in the `UserID` being set in the request context, allowing the request to proceed.
 
-**4. Failure Path**: Invalid or expired tokens return a 401 Unauthorized response with an appropriate error message.
+**4. Failure Path** — Invalid or expired tokens return a `401 Unauthorized` response with an appropriate error message.
 
-## How to Use
+### How to Use
 
 Enable Bearer authentication on routes by adding the appropriate hook ID to route metadata:
 
@@ -106,26 +131,31 @@ method = "GET"
 plugins = ["bearer.auth.optional"]
 ```
 
-## Client Request Format
+### Client Request Format
 
-Clients must send JWT access tokens in the Authorization header using the Bearer scheme:
+Clients must send JWT access tokens in the `Authorization` header using the Bearer scheme:
 
-```
+```http
 Authorization: Bearer eyJhbGciOiJFZERTQSJ9...
 ```
 
-## Cooperative Authentication
+### Cooperative Authentication
 
-The bearer plugin implements cooperative authentication - if a request already has a `UserID` set by another authentication plugin (e.g., Session), the bearer plugin will skip its validation. This allows multiple auth methods to work together seamlessly.
+The Bearer plugin implements cooperative authentication — if a request already has a `UserID` set by another authentication plugin (e.g., Session), the Bearer plugin will skip its validation. This allows multiple auth methods to work together seamlessly.
+
+---
 
 ## Dependencies
 
-- **JWT Plugin**: Required - the bearer plugin validates tokens using the JWT service
-- **JWT Service**: Must be registered in the service registry by the JWT plugin
+- **JWT Plugin** — Required: the Bearer plugin validates tokens using the JWT service
+- **JWT Service** — Must be registered in the service registry by the JWT plugin
+
+---
 
 ## Security Features
 
-- **Strict Format Validation**: Enforces proper `Bearer <token>` format
-- **JWT Validation**: Leverages the JWT plugin's comprehensive token validation (signature, expiration, blacklist)
-- **Clear Error Messages**: Returns descriptive 401 errors for debugging
-- **No Token Storage**: Stateless validation - no server-side session storage required
+- **Strict Format Validation** — Enforces proper `Bearer <token>` format
+- **JWT Validation** — Leverages the JWT plugin's comprehensive token validation (signature, expiration, blacklist)
+- **Clear Error Messages** — Returns descriptive 401 errors for debugging
+- **No Token Storage** — Stateless validation — no server-side session storage required
+- **HttpOnly Not Required** — Unlike cookie-based auth, Bearer tokens are sent explicitly in headers
