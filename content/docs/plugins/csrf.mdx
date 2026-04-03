@@ -66,13 +66,13 @@ csrfplugin.New(csrfplugin.CSRFPluginConfig{
 
 ## API Reference
 
-The CSRF plugin does not expose any HTTP endpoints. It operates as a middleware plugin that validates incoming requests via lifecycle hooks.
+The CSRF plugin doesn't expose any HTTP endpoints.
 
 ---
 
 ## Database Schema
 
-The CSRF plugin does not create any database tables. Token validation is performed statelessly using cookies and headers.
+The CSRF plugin doesn't create any database tables.
 
 ---
 
@@ -114,6 +114,28 @@ Routes must explicitly request CSRF protection by including the plugin identifie
 method = "POST"
 path = "/some/path"
 plugins = ["csrf.protect"]
+```
+
+---
+
+## Client Plugin
+
+If you're using the [Authula SDK](https://github.com/Authula/authula-node-sdk), add the plugin to the SDK like so:
+
+```typescript
+import { createClient } from "authula";
+import { CSRFPlugin } from "authula/plugins";
+
+export const authulaClient = createClient({
+  url: "http://localhost:8080/auth",
+  plugins: [
+    // other plugins...
+    new CSRFPlugin({
+      cookieName: "authula_csrf_token", // optional, defaults to "authula_csrf_token"
+      headerName: "X-AUTHULA-CSRF-TOKEN", // optional, defaults to "X-AUTHULA-CSRF-TOKEN"
+    }),
+  ],
+});
 ```
 
 ---

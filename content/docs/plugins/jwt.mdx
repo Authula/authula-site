@@ -215,6 +215,25 @@ After successful authentication, the response will include:
 
 ---
 
+## Client Plugin
+
+If you're using the [Authula SDK](https://github.com/Authula/authula-node-sdk), add the plugin to the SDK like so:
+
+```typescript
+import { createClient } from "authula";
+import { JWTPlugin } from "authula/plugins";
+
+export const authulaClient = createClient({
+  url: "http://localhost:8080/auth",
+  plugins: [
+    // other plugins...
+    new JWTPlugin(),
+  ],
+});
+```
+
+---
+
 ## Security Recommendations
 
 - **Use EdDSA by Default** — EdDSA provides the best balance of security and performance for most use cases

@@ -180,3 +180,22 @@ config := authulaconfig.NewConfig(
   }),
 )
 ```
+
+---
+
+## Client Plugin
+
+If you're using the [Authula SDK](https://github.com/Authula/authula-node-sdk), add the plugin to the SDK like so:
+
+```typescript
+import { createClient } from "authula";
+import { AccessControlPlugin } from "authula/plugins";
+
+export const authulaClient = createClient({
+  url: "http://localhost:8080/auth",
+  plugins: [
+    // other plugins...
+    new AccessControlPlugin(),
+  ],
+});
+```

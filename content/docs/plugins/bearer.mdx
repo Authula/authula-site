@@ -151,6 +151,27 @@ The Bearer plugin implements cooperative authentication — if a request already
 
 ---
 
+## Client Plugin
+
+If you're using the [Authula SDK](https://github.com/Authula/authula-node-sdk), add the plugin to the SDK like so:
+
+```typescript
+import { createClient } from "authula";
+import { BearerPlugin } from "authula/plugins";
+
+export const authulaClient = createClient({
+  url: "http://localhost:8080/auth",
+  plugins: [
+    // other plugins...
+    new BearerPlugin({
+      headerName: "Authorization", // optional, defaults to "Authorization"
+    }),
+  ],
+});
+```
+
+---
+
 ## Security Features
 
 - **Strict Format Validation** — Enforces proper `Bearer <token>` format

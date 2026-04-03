@@ -1,56 +1,77 @@
 ---
 title: Magic Link Plugin
-description: Passwordless authentication using email-based magic links.
+description: Passwordless authentication using email-based magic links
 ---
 
 ## Overview
 
-The Magic Link plugin provides passwordless authentication using email-based magic links. Users receive a secure link via email that they can click to sign in without passwords.
+The Magic Link plugin provides passwordless authentication using email-based magic links. Users receive a secure link via email that they can click to sign in without passwords, offering a seamless and secure authentication experience.
 
 ### Features
 
-- Passwordless authentication via email
-- Secure token-based verification
-- Configurable expiration time
-- Optional user registration on first sign-in
-- Custom email sending function support
+- **Passwordless Authentication** — Sign in via email without passwords
+- **Secure Token-Based Verification** — Cryptographically secure tokens with configurable expiration
+- **Configurable Expiration** — Set custom token expiration times
+- **Optional User Registration** — Allow new user registration on first sign-in
+- **Custom Email Sending** — Support for custom email sending functions
+- **Callback URL Support** — Redirect users to custom URLs after verification
 
 ---
 
 ## Configuration
 
-`Standalone Mode:`
+### Standalone Mode
 
 ```toml
 [plugins.magic_link]
 enabled = true
-expires_in = "15m"  # Token expiration time
-disable_sign_up = false  # Allow new user registration
+expires_in = "15m"
+disable_sign_up = false
 ```
 
-`Library Mode:`
+### Library Mode
 
 ```go
 import (
-  magiclinkplugin "github.com/Authula/authula/plugins/magic-link"
-  magiclinkplugintypes "github.com/Authula/authula/plugins/magic-link/types"
+	authulamodels "github.com/Authula/authula/models"
+	magiclinkplugin "github.com/Authula/authula/plugins/magic-link"
+	magiclinkplugintypes "github.com/Authula/authula/plugins/magic-link/types"
 )
 
 magiclinkplugin.New(magiclinkplugintypes.MagicLinkPluginConfig{
-  Enabled: true,
-  ExpiresIn: 15 * time.Minute,
-  DisableSignUp: false,
-  // Optional: Custom email sender function
-  SendMagicLinkVerificationEmail func(email string, url string, token string) error {
-    // Implement your email sending logic here, e.g. using an email service provider
-    return nil
-  },
-})
+	Enabled:     true,
+	ExpiresIn:   15 * time.Minute,
+	DisableSignUp: false,
+	// Optional: Custom email sender function
+	SendMagicLinkVerificationEmail: func(
+		email string,
+		url string,
+		token string,
+		reqCtx *authulamodels.RequestContext,
+	) error {
+		// Implement your email sending logic here
+		return nil
+	},
+}),
 ```
+
+### Configuration Options
+
+| Option            | Type     | Default | Description                                  |
+| ----------------- | -------- | ------- | -------------------------------------------- |
+| `enabled`         | boolean  | `true`  | Enable or disable the plugin                 |
+| `expires_in`      | duration | `"15m"` | Magic link token expiration time             |
+| `disable_sign_up` | boolean  | `false` | Allow new user registration on first sign-in |
 
 ---
 
-## API Endpoints
+## API Reference
+
+| Method | Endpoint               | Description                              |
+| ------ | ---------------------- | ---------------------------------------- |
+| `POST` | `/magic-link/sign-in`  | Send magic link email to user            |
+| `GET`  | `/magic-link/verify`   | Verify token from email link             |
+| `POST` | `/magic-link/exchange` | Exchange verified token for user session |
 
 ### Sign In
 
@@ -63,8 +84,8 @@ Request body:
 ```json
 {
   "email": "user@example.com",
-  "name": "John Doe", // optional
-  "callback_url": "https://yourapp.com/callback" // optional
+  "name": "John Doe",
+  "callback_url": "https://yourapp.com/callback"
 }
 ```
 
@@ -76,6 +97,8 @@ Verifies the token from the email link. If `callback_url` is provided, redirects
 
 ### Exchange
 
+Exchanges the verified token for user session and authentication.
+
 **POST** `/magic-link/exchange`
 
 Request body:
@@ -86,23 +109,39 @@ Request body:
 }
 ```
 
-Exchanges the verified token for user session and authentication.
+---
+
+## Database Schema
+
+The Magic Link plugin does not create any database tables.
 
 ---
 
-## Flow
+## Plugin Capabilities
 
-1. Client calls `/magic-link/sign-in` with user's email
-2. User receives email with link containing verification token
-3. User clicks link, which calls `/magic-link/verify` and the token is verified
-4. Client then receives another token to exchange with a session by calling `/magic-link/exchange`
-5. User is now signed in with session established
+The Magic Link plugin provides no hooks or capabilities.
+
+---
+
+### Flow Steps
+
+**1. Request Sign-In** — Client calls `/magic-link/sign-in` with user's email address.
+
+**2. Magic Link Sent** — A secure token is generated and sent to the user's email address.
+
+**3. User Clicks Link** — User clicks the magic link in the email, which calls `/magic-link/verify`.
+
+**4. Token Verified** — The token is verified for validity and expiration.
+
+**5. Exchange for Session** — Client calls `/magic-link/exchange` with the verified token to establish a session.
+
+**6. Session Created** — User is authenticated with an active session.
 
 ---
 
 ## Client Plugin
 
-If you're using the [Authula SDK](https://github.com/Authula/authula-node-sdk). Add the plugin to the SDK like so:
+If you're using the [Authula SDK](https://github.com/Authula/authula-node-sdk), add the plugin to the SDK like so:
 
 ```typescript
 import { createClient } from "authula";
@@ -116,3 +155,15 @@ export const authulaClient = createClient({
   ],
 });
 ```
+
+---
+
+## Security Recommendations
+
+- **Short Expiration Times** — Use short `expires_in` values (15 minutes or less) to minimize token exposure window
+- **Single-Use Tokens** — Tokens are automatically marked as used after verification to prevent replay attacks
+- **HTTPS Required** — Always use HTTPS in production to protect magic links in transit
+- **Rate Limiting** — Consider rate limiting the `/magic-link/sign-in` endpoint to prevent email flooding attacks
+- **Email Verification** — For new user registration, consider additional verification steps before allowing account creation
+- **Token Hashing** — Tokens are automatically hashed before storage; never log or expose raw tokens
+- **Disable Sign-Up for Closed Systems** — Set `disable_sign_up = true` for invite-only or closed user bases

@@ -187,6 +187,25 @@ The Admin plugin provides the following capabilities:
 
 ---
 
+## Client Plugin
+
+If you're using the [Authula SDK](https://github.com/Authula/authula-node-sdk), add the plugin to the SDK like so:
+
+```typescript
+import { createClient } from "authula";
+import { AdminPlugin } from "authula/plugins";
+
+export const authulaClient = createClient({
+  url: "http://localhost:8080/auth",
+  plugins: [
+    // other plugins...
+    new AdminPlugin(),
+  ],
+});
+```
+
+---
+
 ## Security Recommendations
 
 - **Access Control** — All admin endpoints should be protected by appropriate authentication and authorization ideally using the Access Control plugin alongside this plugin to restrict access to authorized administrators only.

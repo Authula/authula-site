@@ -249,6 +249,25 @@ plugins = ["session.auth.optional"]
 
 ---
 
+## Client Plugin
+
+If you're using the [Authula SDK](https://github.com/Authula/authula-node-sdk), add the plugin to the SDK like so:
+
+```typescript
+import { createClient } from "authula";
+import { TOTPPlugin } from "authula/plugins";
+
+export const authulaClient = createClient({
+  url: "http://localhost:8080/auth",
+  plugins: [
+    // other plugins...
+    new TOTPPlugin(),
+  ],
+});
+```
+
+---
+
 ## Security Considerations
 
 1. **Secure Cookies**: In production, always set `secure_cookie = true` to ensure cookies are only sent over HTTPS.
