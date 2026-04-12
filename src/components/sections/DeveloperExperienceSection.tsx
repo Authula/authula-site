@@ -23,7 +23,10 @@ const features = [
 
 export default function DeveloperExperienceSection() {
   return (
-    <section className="relative border-b border-dashed border-sky-950">
+    <section className="relative border-b border-dashed border-sky-950 bg-blue-500/5">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 -z-10 h-full w-full bg-[radial-gradient(#3b82f6_1px,transparent_1px)] bg-size-[16px_16px] mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-[0.15]" />
+
       <div className="custom-container relative border-x border-dashed border-sky-950">
         <BorderIndicators />
 

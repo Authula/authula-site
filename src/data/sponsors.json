@@ -1,0 +1,26 @@
+{
+  "tiers": [
+    {
+      "key": "corporate",
+      "sponsors": []
+    },
+    {
+      "key": "gold",
+      "sponsors": []
+    },
+    {
+      "key": "silver",
+      "sponsors": []
+    },
+    {
+      "key": "bronze",
+      "sponsors": [
+        {
+          "username": "libanj",
+          "imageUrl": "https://avatars.githubusercontent.com/u/36715469?v=4",
+          "linkUrl": "https://github.com/libanj"
+        }
+      ]
+    }
+  ]
+}

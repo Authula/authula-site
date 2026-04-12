@@ -14,6 +14,7 @@ export const getGitHubRepoStars = async (): Promise<number | null> => {
       },
     });
     if (!response.ok) {
+      console.error(`Failed to fetch GitHub repo data: ${response.statusText}`);
       return null;
     }
 
@@ -21,11 +22,13 @@ export const getGitHubRepoStars = async (): Promise<number | null> => {
 
     const validationResult = gitHubRepoResponseSchema.safeParse(data);
     if (!validationResult.success) {
+      console.error(validationResult.error.message);
       return null;
     }
 
     return validationResult.data.stargazers_count ?? null;
-  } catch {
+  } catch (error: any) {
+    console.error(`Error fetching GitHub repo stars:`, error);
     return null;
   }
 };

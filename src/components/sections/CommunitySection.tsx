@@ -14,6 +14,9 @@ export default function CommunitySection() {
       id="community"
       className="relative border-t border-dashed border-sky-950 bg-blue-500/5"
     >
+      {/* Background Pattern */}
+      <div className="absolute inset-0 -z-10 h-full w-full bg-[radial-gradient(#3b82f6_1px,transparent_1px)] bg-size-[16px_16px] mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-[0.15]" />
+
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-500/10 blur-3xl rounded-full -z-10"></div>
 
       <div className="custom-container relative border-x border-dashed border-sky-950">

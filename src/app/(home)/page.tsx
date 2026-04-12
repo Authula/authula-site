@@ -7,6 +7,7 @@ import ComparisonSection from "@/components/sections/ComparisonSection";
 import HooksSection from "@/components/sections/HooksSection";
 import PluginSection from "@/components/sections/PluginSection";
 import DeveloperExperienceSection from "@/components/sections/DeveloperExperienceSection";
+import SponsorsSection from "@/components/sections/SponsorsSection";
 import CommunitySection from "@/components/sections/CommunitySection";
 // import AnnouncementBanner from "@/components/shared/AnnouncementBanner";
 
@@ -22,6 +23,7 @@ export default function HomePage() {
       <HooksSection />
       <PluginSection />
       <DeveloperExperienceSection />
+      <SponsorsSection />
       <CommunitySection />
       <Footer />
     </main>
