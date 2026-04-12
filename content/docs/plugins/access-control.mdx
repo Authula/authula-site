@@ -9,7 +9,7 @@ The **Access Control plugin** provides a comprehensive **Role-Based Access Contr
 
 ### What It Does
 
-- **Role Management** — Create, update, and delete roles that group related permissions
+- **Role Management** — Create and manage roles. Supports system-managed roles that cannot be modified or deleted once created. Roles also support adding a weight to determine their hierarchy and precedence. This is reminicent of the concept of "role hierarchy" in traditional RBAC systems, but implemented with a flexible weight system that allows for more granular control.
 - **Permission Management** — Define fine-grained permissions with unique keys
 - **Role-Permission Mapping** — Associate permissions with roles and manage bulk updates
 - **User Authorization** — Assign roles to users and query their effective permissions
@@ -97,6 +97,7 @@ Table: `access_control_roles`
 | `id`          | string    | PK  | Unique identifier for the role |
 | `name`        | string    | -   | Name of the role               |
 | `description` | string?   | -   | Role description               |
+| `weight`      | int       | -   | Role weight for hierarchy      |
 | `is_system`   | boolean   | -   | Whether role is system-managed |
 | `created_at`  | timestamp | -   | Record creation time           |
 | `updated_at`  | timestamp | -   | Record last update time        |
@@ -180,6 +181,14 @@ config := authulaconfig.NewConfig(
   }),
 )
 ```
+
+---
+
+## Notes
+
+- System-managed roles and permissions are protected from modification or deletion to ensure critical access controls remain intact.
+- Role weights allow you to establish a hierarchy, where higher-weighted roles take precedence over lower-weighted ones. This is very useful for scenarios where users may have multiple roles, and you want to determine which role is of higher priority. Also this is important to take into consideration as a user can only grant roles with equal or lower weight than their highest role, preventing privilege escalation.
+  - An example of this is an "Admin" role with weight 100, "Editor" role with weight 50, and "Viewer" role with weight 25. An Admin can assign any of these roles, while an Editor can only assign the "Viewer" role.
 
 ---
 
