@@ -26,8 +26,9 @@ The Authula plugin documentation follows a **7-section pattern**:
 3. **API Reference** — HTTP endpoints and their purpose
 4. **Database Schema** — Tables created, fields, relationships, migrations
 5. **Plugin Capabilities** — Special features, lifecycle hooks, customization points
-6. **Examples** — Real-world usage patterns (optional but recommended)
-7. **Troubleshooting / Additional Notes** — Common issues, edge cases (optional)
+6. **Security** — Any security best practices or important notes related to the plugin, data handling, or other security considerations (optional)
+7. **Troubleshooting** — Common issues, edge cases (optional)
+8. **Notes** - General notes or guidance about the plugin, any limitations, or any additional important information (optional)
 
 ### Header Structure
 
@@ -38,6 +39,8 @@ The Authula plugin documentation follows a **7-section pattern**:
 
 ...
 
+---
+
 ## Configuration
 
 `Standalone Mode:`
@@ -46,17 +49,25 @@ The Authula plugin documentation follows a **7-section pattern**:
 `Library Mode:`
 ...
 
+---
+
 ## API Reference
 
 ...
+
+---
 
 ## Database Schema
 
 ...
 
+---
+
 ## Plugin Capabilities
 
 ...
+
+---
 ```
 
 This ensures consistent navigation and makes it easy for users to find information.
@@ -73,7 +84,6 @@ This ensures consistent navigation and makes it easy for users to find informati
 
 - One sentence summary of what the plugin does
 - List of **Core Entities** (data models the plugin manages)
-- **Authorization** rules if applicable (who can perform what actions)
 - **Features** (bullet list of key capabilities)
 
 **Example structure**:
@@ -226,10 +236,6 @@ Enabled: true,
 | `updated_at` | timestamp | - | Record last update time |
 ```
 
----
-
-### 5. Database Hooks (if applicable)
-
 ```markdown
 ### Database Hooks
 
@@ -267,7 +273,7 @@ BeforeCreateTodo: customBeforeCreateTodo,
 
 ---
 
-### 6. Plugin Capabilities Section
+### 5. Plugin Capabilities Section
 
 **Purpose**: Explain the available capabilities and hooks.
 
@@ -328,13 +334,25 @@ pluginname.HookIDHookName.String(),
 
 ---
 
-### 7. Security Recommendations (Optional)
+### 6. Security Recommendations (Optional)
 
 Include any security best practices or important notes related to the plugin, data handling, or other security considerations.
 
 - Explicitly state anything required for API endpoints
 - Note any sensitive data handling, reliance on services from the service registry or anything else that users should be aware of when using the plugin.
 - Recommend best practices for securing access to the plugin's features
+
+---
+
+### 7. Troubleshooting Section (Optional)
+
+Include common issues, edge cases, or troubleshooting tips related to the plugin. This can help users quickly resolve common problems without needing to seek support.
+
+---
+
+### 8. Notes Section (Optional)
+
+Include general notes or guidance about the plugin, any limitations, or any additional important information.
 
 ---
 
@@ -345,10 +363,9 @@ Before considering plugin documentation complete, verify:
 - [ ] **Overview section** exists and explains features clearly without implementation details
 - [ ] **Configuration section** shows both Standalone (TOML) and Library (Go) modes
 - [ ] **API Reference** is a complete table of all HTTP endpoints (GET, POST, PATCH, PUT, DELETE)
-- [ ] **Database Schema** documents all tables with fields, types, keys, and descriptions
+- [ ] **Database Schema** documents all tables with fields, types, keys, and descriptions and includes a migrations note such as: "Migrations are automatically handled when the plugin is initialized", as well as any database hooks.
 - [ ] **Plugin Capabilities** explains capabilities and hooks with code examples
 - [ ] All code examples are syntactically correct and directly copyable
-- [ ] Migrations note is included: "Migrations are automatically handled when the plugin is initialized"
 - [ ] MDX frontmatter includes `title` and `description` meta fields
 
 ---
