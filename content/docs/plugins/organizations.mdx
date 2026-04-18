@@ -1,6 +1,6 @@
 ---
 title: Organizations Plugin
-description: Manage multi-tenant organizations, teams, members, and roles. Enables team collaboration, and email-based invitations.
+description: Manage multi-tenant organizations, members and teams. Enables team collaboration, and email-based invitations.
 ---
 
 ## Overview
@@ -11,21 +11,23 @@ The Organizations plugin provides multi-tenancy and team management capabilities
 
 - **Organizations**: Owner-based organizational units
 - **Members**: Users assigned to organizations with roles
-- **Teams**: Groups of members within organizations
-- **Invitations**: Email-based, expiring invitation tokens
-
-### Authorization
-
-Only organization owners can manage organizations, members, teams, and invitations.
+- **Teams**: Group members into teams within organizations
+- **Invitations**: Email-based invitations for joining organizations
 
 ### Features
 
-- Multi-tenant organization support with owner-based authorization
+- Multi-tenant organization management
 - Role-based member management within organizations
 - Team organization and management within organizations
 - Email-based member invitations with configurable expiration
 - Team member management
 - Full lifecycle management (create, read, update, delete operations)
+
+<Callout title="NOTE" type="warn">
+  This plugin has a dependency on the Access Control plugin for role-based
+  access control. Make sure to configure the Access Control plugin to utilize
+  all features of the Organizations plugin.
+</Callout>
 
 ---
 
@@ -36,68 +38,88 @@ Only organization owners can manage organizations, members, teams, and invitatio
 ```toml
 [organizations]
 enabled = true
-invitation_expires_in = "168h"
+organizations_limit = 10 # Optional limit on number of organizations (set to 0 for unlimited)
+members_limit = 100 # Optional limit on number of members per organization (set to 0 for unlimited)
+invitations_limit = 100 # Optional limit on number of invitations sent to a user (100 by default)
+invitation_expires_in = "24h" # Expiration time for organization invitations (24h = 1 day by default)
+require_email_verified_on_invitation = true # Whether to require the invited user's email to be verified before accepting or rejecting an organization invitation (false by default)
 ```
 
 `Library Mode:`
 
 ```go
-pluginConfig := &types.OrganizationsPluginConfig{
-  Enabled:             true,
-  InvitationExpiresIn: 7 * 24 * time.Hour,
-  DatabaseHooks: &types.OrganizationsDatabaseHooksConfig{
-    Organizations: &types.OrganizationDatabaseHooksConfig{
-      BeforeCreate: customBeforeCreateOrganization,
-      AfterCreate:  customAfterCreateOrganization,
-    },
-    Members: &types.OrganizationMemberDatabaseHooksConfig{
-      AfterCreate: customAfterAddMember,
-    },
-    Invitations: &types.OrganizationInvitationDatabaseHooksConfig{
-      AfterCreate: customAfterInvitationCreated,
-    },
-    Teams: &types.OrganizationTeamDatabaseHooksConfig{
-      BeforeCreate: customBeforeCreateTeam,
-    },
-    TeamMembers: &types.OrganizationTeamMemberDatabaseHooksConfig{
-      AfterCreate: customAfterAddTeamMember,
-    },
-  },
-}
+import (
+  "time"
 
-plugin := organizations.New(pluginConfig)
+  organizationsplugin "github.com/authula/authula/plugins/organizations"
+  organizationsplugintypes "github.com/authula/authula/plugins/organizations/types"
+)
+
+organizationsplugin.New(&organizationsplugintypes.OrganizationsPluginConfig{
+  Enabled:             true,
+  OrganizationsLimit:  10,
+  MembersLimit:        100,
+  InvitationsLimit:    100,
+  InvitationExpiresIn: 24 * time.Hour,
+  RequireEmailVerifiedOnInvitation: true,
+  DatabaseHooks: &organizationsplugintypes.OrganizationsDatabaseHooksConfig{
+    // Optional database hooks for custom logic on organization lifecycle events
+  },
+})
 ```
 
 ---
 
 ## API Reference
 
-| HTTP Method | Route Path                                                                 | Description             |
-| ----------- | -------------------------------------------------------------------------- | ----------------------- |
-| `POST`      | `/organizations`                                                           | Create organization     |
-| `GET`       | `/organizations`                                                           | List user's organizations |
-| `GET`       | `/organizations/{organization_id}`                                         | Get organization        |
-| `PATCH`     | `/organizations/{organization_id}`                                         | Update organization     |
-| `DELETE`    | `/organizations/{organization_id}`                                         | Delete organization     |
-| `POST`      | `/organizations/{organization_id}/members`                                 | Add member              |
-| `GET`       | `/organizations/{organization_id}/members`                                 | List members            |
-| `GET`       | `/organizations/{organization_id}/members/{member_id}`                     | Get member              |
-| `PATCH`     | `/organizations/{organization_id}/members/{member_id}`                     | Update member role      |
-| `DELETE`    | `/organizations/{organization_id}/members/{member_id}`                     | Remove member           |
-| `POST`      | `/organizations/{organization_id}/teams`                                   | Create team             |
-| `GET`       | `/organizations/{organization_id}/teams`                                   | List teams              |
-| `PATCH`     | `/organizations/{organization_id}/teams/{team_id}`                         | Update team             |
-| `DELETE`    | `/organizations/{organization_id}/teams/{team_id}`                         | Delete team             |
-| `POST`      | `/organizations/{organization_id}/teams/{team_id}/members`                 | Add member to team      |
-| `GET`       | `/organizations/{organization_id}/teams/{team_id}/members`                 | List team members       |
-| `GET`       | `/organizations/{organization_id}/teams/{team_id}/members/{member_id}`     | Get team member         |
-| `DELETE`    | `/organizations/{organization_id}/teams/{team_id}/members/{member_id}`     | Remove member from team |
-| `POST`      | `/organizations/{organization_id}/invitations`                             | Create invitation       |
-| `GET`       | `/organizations/{organization_id}/invitations`                             | List invitations        |
-| `GET`       | `/organizations/{organization_id}/invitations/{invitation_id}`             | Get invitation          |
-| `PATCH`     | `/organizations/{organization_id}/invitations/{invitation_id}`             | Revoke invitation       |
-| `POST`      | `/organizations/{organization_id}/invitations/{invitation_id}/accept`      | Accept invitation       |
-| `POST`      | `/organizations/{organization_id}/invitations/{invitation_id}/reject`      | Reject invitation       |
+### Organizations
+
+| HTTP Method | Route Path                         | Description               |
+| ----------- | ---------------------------------- | ------------------------- |
+| `POST`      | `/organizations`                   | Create organization       |
+| `GET`       | `/organizations`                   | List user's organizations |
+| `GET`       | `/organizations/{organization_id}` | Get organization          |
+| `PATCH`     | `/organizations/{organization_id}` | Update organization       |
+| `DELETE`    | `/organizations/{organization_id}` | Delete organization       |
+
+### Invitations
+
+| HTTP Method | Route Path                                                            | Description       |
+| ----------- | --------------------------------------------------------------------- | ----------------- |
+| `POST`      | `/organizations/{organization_id}/invitations`                        | Create invitation |
+| `GET`       | `/organizations/{organization_id}/invitations`                        | List invitations  |
+| `GET`       | `/organizations/{organization_id}/invitations/{invitation_id}`        | Get invitation    |
+| `PATCH`     | `/organizations/{organization_id}/invitations/{invitation_id}`        | Revoke invitation |
+| `POST`      | `/organizations/{organization_id}/invitations/{invitation_id}/accept` | Accept invitation |
+| `POST`      | `/organizations/{organization_id}/invitations/{invitation_id}/reject` | Reject invitation |
+
+### Members
+
+| HTTP Method | Route Path                                             | Description   |
+| ----------- | ------------------------------------------------------ | ------------- |
+| `POST`      | `/organizations/{organization_id}/members`             | Add member    |
+| `GET`       | `/organizations/{organization_id}/members`             | List members  |
+| `GET`       | `/organizations/{organization_id}/members/{member_id}` | Get member    |
+| `PATCH`     | `/organizations/{organization_id}/members/{member_id}` | Update member |
+| `DELETE`    | `/organizations/{organization_id}/members/{member_id}` | Remove member |
+
+### Teams
+
+| HTTP Method | Route Path                                         | Description |
+| ----------- | -------------------------------------------------- | ----------- |
+| `POST`      | `/organizations/{organization_id}/teams`           | Create team |
+| `GET`       | `/organizations/{organization_id}/teams`           | List teams  |
+| `PATCH`     | `/organizations/{organization_id}/teams/{team_id}` | Update team |
+| `DELETE`    | `/organizations/{organization_id}/teams/{team_id}` | Delete team |
+
+### Team Members
+
+| HTTP Method | Route Path                                                             | Description             |
+| ----------- | ---------------------------------------------------------------------- | ----------------------- |
+| `POST`      | `/organizations/{organization_id}/teams/{team_id}/members`             | Add member to team      |
+| `GET`       | `/organizations/{organization_id}/teams/{team_id}/members`             | List team members       |
+| `GET`       | `/organizations/{organization_id}/teams/{team_id}/members/{member_id}` | Get team member         |
+| `DELETE`    | `/organizations/{organization_id}/teams/{team_id}/members/{member_id}` | Remove member from team |
 
 ---
 
@@ -107,147 +129,145 @@ This plugin creates the following database tables:
 
 ### Table: `organizations`
 
-| Field         | Type      | Key | Description                                  |
-| ------------- | --------- | --- | -------------------------------------------- |
-| `id`          | string    | PK  | Unique identifier for the organization      |
-| `owner_id`    | string    | FK  | Reference to the organization owner (user)  |
-| `name`        | string    | -   | Organization name                           |
-| `slug`        | string    | -   | URL-friendly organization identifier (unique) |
-| `logo`        | string    | -   | Organization logo URL                       |
-| `metadata`    | JSON      | -   | Additional organization metadata            |
-| `created_at`  | timestamp | -   | Record creation time                        |
-| `updated_at`  | timestamp | -   | Record last update time                     |
-
----
-
-### Table: `organization_members`
-
-| Field              | Type      | Key | Description                                     |
-| ------------------ | --------- | --- | ----------------------------------------------- |
-| `id`               | string    | PK  | Unique identifier for the member record        |
-| `organization_id`  | string    | FK  | Reference to the organization                  |
-| `user_id`          | string    | FK  | Reference to the user                          |
-| `role`             | string    | -   | Member's role within the organization          |
-| `created_at`       | timestamp | -   | Record creation time                           |
-| `updated_at`       | timestamp | -   | Record last update time                        |
-
----
+| Field        | Type      | Key | Description                                   |
+| ------------ | --------- | --- | --------------------------------------------- |
+| `id`         | string    | PK  | Unique identifier for the organization        |
+| `owner_id`   | string    | FK  | Reference to the organization owner (user)    |
+| `name`       | string    | -   | Organization name                             |
+| `slug`       | string    | -   | URL-friendly organization identifier (unique) |
+| `logo`       | string    | ?   | Organization logo URL                         |
+| `metadata`   | JSON      | -   | Additional organization metadata              |
+| `created_at` | timestamp | -   | Record creation time                          |
+| `updated_at` | timestamp | -   | Record last update time                       |
 
 ### Table: `organization_invitations`
 
-| Field              | Type      | Key | Description                                     |
-| ------------------ | --------- | --- | ----------------------------------------------- |
-| `id`               | string    | PK  | Unique identifier for the invitation           |
-| `email`            | string    | -   | Email address being invited                    |
-| `inviter_id`       | string    | FK  | Reference to the user who sent the invitation  |
-| `organization_id`  | string    | FK  | Reference to the organization                  |
-| `role`             | string    | -   | Role assigned to the invited member            |
-| `status`           | string    | -   | Invitation status (default: 'pending')         |
-| `expires_at`       | timestamp | -   | Invitation expiration time                     |
-| `created_at`       | timestamp | -   | Record creation time                           |
-| `updated_at`       | timestamp | -   | Record last update time                        |
+| Field             | Type      | Key | Description                                   |
+| ----------------- | --------- | --- | --------------------------------------------- |
+| `id`              | string    | PK  | Unique identifier for the invitation          |
+| `email`           | string    | -   | Email address being invited                   |
+| `inviter_id`      | string    | FK  | Reference to the user who sent the invitation |
+| `organization_id` | string    | FK  | Reference to the organization                 |
+| `role`            | string    | -   | Role assigned to the invited member           |
+| `status`          | string    | -   | Invitation status                             |
+| `expires_at`      | timestamp | -   | Invitation expiration time                    |
+| `created_at`      | timestamp | -   | Record creation time                          |
 
----
+### Table: `organization_members`
+
+| Field             | Type      | Key | Description                             |
+| ----------------- | --------- | --- | --------------------------------------- |
+| `id`              | string    | PK  | Unique identifier for the member record |
+| `organization_id` | string    | FK  | Reference to the organization           |
+| `user_id`         | string    | FK  | Reference to the user                   |
+| `role`            | string    | -   | Member's role within the organization   |
+| `created_at`      | timestamp | -   | Record creation time                    |
+| `updated_at`      | timestamp | -   | Record last update time                 |
 
 ### Table: `organization_teams`
 
-| Field              | Type      | Key | Description                                     |
-| ------------------ | --------- | --- | ----------------------------------------------- |
-| `id`               | string    | PK  | Unique identifier for the team                 |
-| `organization_id`  | string    | FK  | Reference to the organization                  |
-| `name`             | string    | -   | Team name                                       |
-| `slug`             | string    | -   | URL-friendly team identifier                   |
-| `description`      | string    | -   | Team description                               |
-| `metadata`         | JSON      | -   | Additional team metadata                       |
-| `created_at`       | timestamp | -   | Record creation time                           |
-| `updated_at`       | timestamp | -   | Record last update time                        |
-
----
+| Field             | Type      | Key | Description                    |
+| ----------------- | --------- | --- | ------------------------------ |
+| `id`              | string    | PK  | Unique identifier for the team |
+| `organization_id` | string    | FK  | Reference to the organization  |
+| `name`            | string    | -   | Team name                      |
+| `slug`            | string    | -   | URL-friendly identifier        |
+| `description`     | string    | ?   | Description                    |
+| `metadata`        | JSON      | -   | Additional metadata            |
+| `created_at`      | timestamp | -   | Record creation time           |
+| `updated_at`      | timestamp | -   | Record last update time        |
 
 ### Table: `organization_team_members`
 
-| Field         | Type      | Key | Description                                     |
-| ------------- | --------- | --- | ----------------------------------------------- |
-| `id`          | string    | PK  | Unique identifier for the team member record   |
-| `team_id`     | string    | FK  | Reference to the team                          |
-| `member_id`   | string    | FK  | Reference to the organization member           |
-| `created_at`  | timestamp | -   | Record creation time                           |
+| Field        | Type      | Key | Description                                  |
+| ------------ | --------- | --- | -------------------------------------------- |
+| `id`         | string    | PK  | Unique identifier for the team member record |
+| `team_id`    | string    | FK  | Reference to the team                        |
+| `member_id`  | string    | FK  | Reference to the organization member         |
+| `created_at` | timestamp | -   | Record creation time                         |
 
 Migrations are automatically handled when the plugin is initialized.
+
+### Database Hooks
+
+This plugin supports the following database hooks:
+
+**Organizations**:
+
+- `BeforeCreate`: Before an organization is created
+- `AfterCreate`: After an organization is created
+- `BeforeUpdate`: Before an organization is updated
+- `AfterUpdate`: After an organization is updated
+- `BeforeDelete`: Before an organization is deleted
+- `AfterDelete`: After an organization is deleted
+
+**Invitations**:
+
+- `BeforeCreate`: Before an invitation is created
+- `AfterCreate`: After an invitation is created
+- `BeforeUpdate`: Before an invitation is updated
+- `AfterUpdate`: After an invitation is updated
+- `BeforeDelete`: Before an invitation is deleted
+- `AfterDelete`: After an invitation is deleted
+
+**Members**:
+
+- `BeforeCreate`: Before a member is created
+- `AfterCreate`: After a member is created
+- `BeforeUpdate`: Before a member is updated
+- `AfterUpdate`: After a member is updated
+- `BeforeDelete`: Before a member is deleted
+- `AfterDelete`: After a member is deleted
+
+**Teams**:
+
+- `BeforeCreate`: Before a team is created
+- `AfterCreate`: After a team is created
+- `BeforeUpdate`: Before a team is updated
+- `AfterUpdate`: After a team is updated
+- `BeforeDelete`: Before a team is deleted
+- `AfterDelete`: After a team is deleted
+
+**Team Members**:
+
+- `BeforeCreate`: Before a team member is created
+- `AfterCreate`: After a team member is created
+- `BeforeDelete`: Before a team member is deleted
+- `AfterDelete`: After a team member is deleted
+
+<Callout title="NOTE" type="info">
+  Database hooks are only supported in Library Mode.
+</Callout>
 
 ---
 
 ## Plugin Capabilities
 
-The Organizations plugin provides hooks and capabilities for customizing organization lifecycle events and member management.
+This plugin doesn't provide any hooks and capabilities.
 
-### Database Hooks
+---
 
-Organizations plugin supports the following database hooks:
+## Security Recommendations
 
-- `organizations.before_create`: Execute custom logic before organization creation
-- `organizations.after_create`: Execute custom logic after organization creation
-- `organization_members.after_create`: Execute custom logic after member is added to organization
-- `organization_invitations.after_create`: Execute custom logic after invitation is created
-- `organization_teams.before_create`: Execute custom logic before team creation
-- `organization_team_members.after_create`: Execute custom logic after member is added to team
+- Ensure that the Access Control plugin is properly configured to manage permissions for organization-related actions.
+- Regularly review organization members and their roles to maintain proper access control.
+- Make sure to always require authentication for all organization-related API routes and enforce role-based access control for certain routes.
 
-#### Example Usage
+---
 
-`Standalone mode:`
+## Client Plugin
 
-```toml
-[[hooks]]
-event = "organizations.after_create"
-handler = "send_welcome_email"
+If you're using the [Authula SDK](https://github.com/Authula/authula-node-sdk), add the plugin to the client instance as follows:
 
-[[hooks]]
-event = "organization_members.after_create"
-handler = "notify_member_added"
+```typescript
+import { createClient } from "authula";
+import { OrganizationsPlugin } from "authula/plugins";
 
-[[hooks]]
-event = "organization_invitations.after_create"
-handler = "send_invitation_email"
-```
-
-`Library mode:`
-
-```go
-import (
-  organizationsplugin "github.com/Authula/authula/plugins/organizations"
-)
-
-// Define hook handlers
-func customAfterCreateOrganization(ctx context.Context, org *models.Organization) error {
-  // Send welcome email to organization owner
-  return sendWelcomeEmail(org.Owner.Email)
-}
-
-func customAfterAddMember(ctx context.Context, member *models.OrganizationMember) error {
-  // Notify organization owner that a new member was added
-  return notifyMemberAdded(member.OrganizationID, member.UserID)
-}
-
-func customAfterInvitationCreated(ctx context.Context, invitation *models.OrganizationInvitation) error {
-  // Send invitation email
-  return sendInvitationEmail(invitation.Email, invitation.InvitationToken)
-}
-
-// Register hooks with plugin config
-config := &types.OrganizationsPluginConfig{
-  Enabled: true,
-  DatabaseHooks: &types.OrganizationsDatabaseHooksConfig{
-    Organizations: &types.OrganizationDatabaseHooksConfig{
-      AfterCreate: customAfterCreateOrganization,
-    },
-    Members: &types.OrganizationMemberDatabaseHooksConfig{
-      AfterCreate: customAfterAddMember,
-    },
-    Invitations: &types.OrganizationInvitationDatabaseHooksConfig{
-      AfterCreate: customAfterInvitationCreated,
-    },
-  },
-}
-
-plugin := organizationsplugin.New(config)
+export const authulaClient = createClient({
+  url: "http://localhost:8080/auth",
+  plugins: [
+    // other plugins...
+    new OrganizationsPlugin(),
+  ],
+});
 ```
