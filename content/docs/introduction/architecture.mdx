@@ -14,12 +14,12 @@ Authula follows **Clean Architecture** principles with built-in HTTP handlers:
 │ • auth.Handler() returns ready-to-use handler               │
 │ • Mount on any standard Mux HTTP server                     │
 │ • Uses Chi router under the hood                            │
-├─────────────────────────────────────────────────────────────┤
+│─────────────────────────────────────────────────────────────│
 │ Database Adapters                                           │
+├─────────────────────────────────────────────────────────────┤
 │ • SQLite                                                    │
 │ • PostgreSQL                                                │
 │ • MySQL                                                     │
-│ • Extensible                                                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -36,16 +36,16 @@ Authula follows **Clean Architecture** principles with built-in HTTP handlers:
 
 ### Handler Layer
 
-- Entrypoint for API endpoints, delegates logic to use cases which uilise services that use repositories providing clear separation of concerns.
-- Integrated with middleware and hooks for extensibility
+- Entrypoint for API endpoints, delegates logic to either use cases in some scenarios which call one or multiple services. Or if the handler only has a dependency on one service then it delegates to that single service without the need for a use case. Services handle business logic and delegate data access to repositories providing clear separation of concerns.
+- Integrated with hooks for extensibility
 
 ### Use Cases Layer
 
-- Use cases (interfaces), services (business logic), repositories (database access) for authentication workflows
+- Use cases (interfaces), services (interfaces with concrete implementations for business logic), repositories (handle database access).
 
 ### Database Layer
 
-- [Bun ORM](https://bun.uptrace.dev/) based adapters for multiple databases
+- [Bun ORM](https://bun.uptrace.dev/) for database interactions with support for multiple databases
 
 ### Extensibility
 

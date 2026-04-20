@@ -38,13 +38,12 @@ type Route struct {
 
 ### Example: Adding Custom Endpoints
 
-#### 1. GET `/api/auth/example`
+#### 1. GET `/health`
 
-Returns a message containing your app name.
+Health check endpoint.
 
 ```go
 import (
-  "encoding/json"
   "net/http"
 
   authula "github.com/Authula/authula"
@@ -57,12 +56,13 @@ auth := authula.New(config)
 
 auth.RegisterCustomRoute(authulamodels.Route{
   Method: "GET",
-  Path:   "example",
-  Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(map[string]any{
-      "message": "App name: MyApp",
+  Path:   "/health",
+  Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    ctx := r.Context()
+    reqCtx, _ := authulamodels.GetRequestContext(ctx)
+
+    reqCtx.SetJSONResponse(http.StatusOK, map[string]any{
+      "status": "ok",
     })
   }),
   // Optional
@@ -72,43 +72,46 @@ auth.RegisterCustomRoute(authulamodels.Route{
 })
 ```
 
-#### 2. POST `/api/auth/send-message`
+#### 2. POST `/send-message`
 
 Accepts a JSON body and returns it in the response.
 
 ```go
 import (
-  "encoding/json"
   "net/http"
 
   authula "github.com/Authula/authula"
   authulaconfig "github.com/Authula/authula/config"
   authulamodels "github.com/Authula/authula/models"
+  authulainternalutils "github.com/Authula/authula/internal/util"
 )
 
 config := authulaconfig.NewConfig(/*...*/)
-
 auth := authula.New(config)
+
+type SendMessageRequest struct {
+  Message string `json:"message"`
+}
 
 auth.RegisterCustomRoute(authulamodels.Route{
   Method: "POST",
-  Path:   "send-message",
+  Path:   "/send-message",
   Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    var body map[string]any
-    if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-      w.Header().Set("Content-Type", "application/json")
-      w.WriteHeader(http.StatusBadRequest)
-      json.NewEncoder(w).Encode(map[string]any{
-        "error": "Invalid JSON body",
+    ctx := r.Context()
+    reqCtx, _ := authulamodels.GetRequestContext(ctx)
+
+    var request SendMessageRequest
+    if err := authulainternalutils.ParseJSON(r, &request); err != nil {
+      reqCtx.SetJSONResponse(http.StatusUnprocessableEntity, map[string]any{
+        "message": "invalid request body",
       })
+      reqCtx.Handled = true
       return
     }
 
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(map[string]any{
+    reqCtx.SetJSONResponse(http.StatusOK, map[string]any{
       "message": "Data received",
-      "data":    body,
+      "data":    request,
     })
   }),
   // Middleware: []func(http.Handler) http.Handler{},
@@ -120,36 +123,29 @@ auth.RegisterCustomRoute(authulamodels.Route{
 })
 ```
 
-#### 3. GET `/api/health`
-
-Health check endpoint.
-
-```go
-// Health check endpoint
-auth.RegisterCustomRoute(authulamodels.Route{
-  Method:   "GET",
-  Path:     "/api/health",
-  Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    w.WriteHeader(http.StatusAccepted)
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]any{
-      "status": "ok",
-    })
-  }),
-})
-```
-
 #### Request Context
 
-When handling requests in your custom routes, you can access the custom `RequestContext` which provides a structured abstraction for passing context through request lifecycle hooks. It encapsulates all request-related information and provides control mechanisms for hooks and is also accessible within routes. It is actually advised to use the `RequestContext` as it comes with handy utility methods and also is the main request object being passed through the lifecycle of the http request/response which also means you can make modifications to it and it will persist throughout the lifecycle. For example, a hook may have already modified some data in the `RequestContext`, you can then access that modified data in your custom route handler.
+When handling requests in custom routes, you can access the custom `RequestContext` to pass structured request data through the request lifecycle. It encapsulates request-related information, provides hook control mechanisms, and is available inside route handlers.
+
+Using `RequestContext` is recommended because it includes useful utility methods and is the main request object used throughout the HTTP request/response lifecycle. Changes made to it persist for the duration of the request, so if a hook has already modified data in `RequestContext`, your custom route can access the updated values.
 
 ```go
+import (
+  "net/http"
+
+  authula "github.com/Authula/authula"
+  authulaconfig "github.com/Authula/authula/config"
+  authulamodels "github.com/Authula/authula/models"
+)
+
 auth.RegisterCustomRoute(authulamodels.Route{
   Method:   "GET",
   Path:     "/api/custom",
   Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     // You can access it like so:
-    reqCtx, _ := authulamodels.GetRequestContext(r.Context())
+    ctx := r.Context()
+    reqCtx, _ := authulamodels.GetRequestContext(ctx)
+
     reqCtx.SetJSONResponse(http.StatusOK, map[string]any{
       "status": "ok",
     })
