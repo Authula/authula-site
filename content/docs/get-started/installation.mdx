@@ -108,12 +108,14 @@ max_age = "24h"
 # Provider options: "gochannel", "sqlite", "postgres", "redis", "kafka", "nats", "rabbitmq"
 
 [event_bus]
-# Options: "gochannel", "sqlite", "postgres", "redis", "kafka", "nats", "rabbitmq"
-provider = "sqlite"
 # Optional prefix for all event topics (default: "")
 prefix = ""
 # Maximum concurrent handlers for event processing (default: 100)
 max_concurrent_handlers = 100
+# Timeout for async published events (default: 5s)
+context_timeout = "5s"
+# Options: "gochannel", "sqlite", "postgres", "redis", "kafka", "nats", "rabbitmq"
+provider = "sqlite"
 
 # GoChannel Configuration (Default - In-Memory)
 # Best for development and testing - events lost on restart
