@@ -1,0 +1,110 @@
+---
+title: Database Schema
+description: Core Authula database tables
+---
+
+Authula comes with a few core tables that power authentication, account linking, session persistence, and verification workflows. These tables are created automatically by the migrator and are shared across the framework.
+
+## How These Tables Fit Together
+
+- `users` stores the primary identity record for each authenticated person.
+- `accounts` stores login methods and external provider credentials linked to a user.
+- `sessions` stores active sessions for request authentication.
+- `verifications` stores short-lived workflow records such as email verification, password reset, magic link sign-in and more.
+
+In practice, a user may have one or more linked accounts, one or more sessions, and zero or more verification records depending on which Authula features are enabled.
+
+## Database Schema
+
+### Table: `users`
+
+The `users` table is the root identity record in Authula. It stores profile data and metadata that can be shared across authentication methods.
+
+| Field            | Type       | Key | Description                           |
+| ---------------- | ---------- | --- | ------------------------------------- |
+| `id`             | string     | PK  | Unique identifier for the user        |
+| `name`           | string     | -   | Display name for the user             |
+| `email`          | string     | -   | Primary email address                 |
+| `email_verified` | boolean    | -   | Whether the email address is verified |
+| `image`          | string?    | -   | Optional profile image URL            |
+| `metadata`       | json/jsonb | -   | Arbitrary user metadata               |
+| `created_at`     | timestamp  | -   | Record creation time                  |
+| `updated_at`     | timestamp  | -   | Record last update time               |
+
+### Table: `accounts`
+
+The `accounts` table stores authentication credentials and linked provider data for each user. It is used for both local credentials and external identity providers.
+
+| Field                      | Type       | Key | Description                           |
+| -------------------------- | ---------- | --- | ------------------------------------- |
+| `id`                       | string     | PK  | Unique identifier for the account     |
+| `user_id`                  | string     | FK  | User that owns this account           |
+| `account_id`               | string     | -   | Provider-specific account identifier  |
+| `provider_id`              | string     | -   | Authentication provider identifier    |
+| `access_token`             | string?    | -   | Optional provider access token        |
+| `refresh_token`            | string?    | -   | Optional provider refresh token       |
+| `id_token`                 | string?    | -   | Optional OIDC ID token                |
+| `access_token_expires_at`  | timestamp? | -   | When the access token expires         |
+| `refresh_token_expires_at` | timestamp? | -   | When the refresh token expires        |
+| `scope`                    | string?    | -   | Granted OAuth scope                   |
+| `password`                 | string?    | -   | Password hash for email/password auth |
+| `created_at`               | timestamp  | -   | Record creation time                  |
+| `updated_at`               | timestamp  | -   | Record last update time               |
+
+`accounts.user_id` belongs to `users.id`. For external providers, `account_id` and `provider_id` identify the linked identity. For email/password auth, the `password` column stores the credential material used for password verification.
+
+### Table: `sessions`
+
+The `sessions` table stores active authenticated sessions so Authula can validate requests and maintain login state across requests.
+
+| Field        | Type      | Key | Description                           |
+| ------------ | --------- | --- | ------------------------------------- |
+| `id`         | string    | PK  | Unique identifier for the session     |
+| `user_id`    | string    | FK  | User that owns the session            |
+| `token`      | string    | -   | Session token used for authentication |
+| `expires_at` | timestamp | -   | When the session expires              |
+| `ip_address` | string?   | -   | Optional source IP address            |
+| `user_agent` | string?   | -   | Optional user agent string            |
+| `created_at` | timestamp | -   | Record creation time                  |
+| `updated_at` | timestamp | -   | Record last update time               |
+
+`sessions.user_id` belongs to `users.id`. Sessions are short-lived compared with users and are typically revoked or expired independently of the user record.
+
+### Table: `verifications`
+
+The `verifications` table stores transient workflow records used for email and multi-step authentication flows.
+
+| Field        | Type              | Key | Description                                   |
+| ------------ | ----------------- | --- | --------------------------------------------- |
+| `id`         | string            | PK  | Unique identifier for the verification record |
+| `user_id`    | string?           | FK  | Optional related user                         |
+| `identifier` | string            | -   | Email or other identifier                     |
+| `token`      | string            | -   | Verification token                            |
+| `type`       | verification_type | -   | Verification workflow type                    |
+| `expires_at` | timestamp         | -   | When the verification expires                 |
+| `created_at` | timestamp         | -   | Record creation time                          |
+| `updated_at` | timestamp         | -   | Record last update time                       |
+
+`verifications.user_id` belongs to `users.id` when a verification is tied to an existing user. The `identifier` field usually stores an email address, and `type` indicates which workflow created the record.
+
+### Verification Types
+
+The `type` field in `verifications` stores one of the following values:
+
+| Type                         | Meaning                                        |
+| ---------------------------- | ---------------------------------------------- |
+| `email_verification`         | Confirms ownership of an email address         |
+| `password_reset_request`     | Tracks a password reset flow                   |
+| `email_reset_request`        | Tracks a request to change the email address   |
+| `magic_link_sign_in_request` | Starts a magic link sign-in flow               |
+| `magic_link_exchange_code`   | Stores the exchange step for a magic link flow |
+| `totp_pending_auth`          | Tracks a pending TOTP authentication step      |
+
+## Relationship Summary
+
+- `users` is the canonical identity table.
+- `accounts` connects a user to local or external sign-in methods.
+- `sessions` tracks authenticated browser or API sessions for a user.
+- `verifications` stores temporary records for email and multi-step auth flows.
+
+Together, these tables cover the core Authula lifecycle: create a user, attach one or more accounts, issue sessions after sign-in, and persist temporary verification state when a workflow requires it.
