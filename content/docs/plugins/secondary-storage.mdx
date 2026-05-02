@@ -10,10 +10,10 @@ The Secondary Storage plugin allows you to use various key-value store options s
 ### Features
 
 - **Multiple Storage Providers** — In-memory, database, or Redis backends
-- **High Performance** — Store rate limit data in RAM or fast key-value stores
 - **Scalability** — Offload high-churn data from your main database
 - **Flexible Adapters** — Implement custom storage adapters for Redis, Valkey, or any key-value store
 - **Automatic Cleanup** — Configurable cleanup intervals for expired entries
+- **Plugin Dependency** — Optionally used by various plugins for efficient storage and other transient/ephemeral data
 
 ---
 
@@ -28,17 +28,6 @@ provider = "memory" # Options: "memory", "database", "redis"
 
 [plugins.secondary_storage.memory]
 cleanup_interval = "1m"
-
-# [plugins.secondary_storage.database]
-# cleanup_interval = "1m"
-
-# [plugins.secondary_storage.redis]
-# SECURITY NOTE: It is recommended to set the 'url' via the
-# REDIS_URL environment variable rather than hardcoding it here.
-# url = ""
-# max_retries = 3
-# pool_size = 10
-# pool_timeout = "30s"
 ```
 
 `Library Mode:`
@@ -48,13 +37,12 @@ import (
   "os"
 
   secondarystorageplugin "github.com/Authula/authula/plugins/secondary-storage"
-  secondarystoragetypes "github.com/Authula/authula/plugins/secondary-storage/types"
 )
 
-secondarystorageplugin.New(secondarystoragetypes.SecondaryStoragePluginConfig{
+secondarystorageplugin.New(secondarystorageplugin.SecondaryStoragePluginConfig{
   Enabled:  true,
   Provider: secondarystorageplugin.SecondaryStorageProviderRedis,
-  Redis: &secondarystoragetypes.RedisStorageConfig{
+  Redis: &secondarystorageplugin.RedisStorageConfig{
     URL: os.Getenv("REDIS_URL"),
   },
 })
@@ -74,13 +62,13 @@ This plugin doesn't expose any HTTP endpoints.
 
 ### Table: `key_value_store`
 
-| Field        | Type       | Key | Description             |
-| ------------ | ---------- | --- | ----------------------- |
-| `key`        | string     | PK  | Storage key             |
-| `value`      | string     | -   | Serialized value        |
-| `expires_at` | timestamp? | -   | When the entry expires  |
-| `created_at` | timestamp  | -   | Record creation time    |
-| `updated_at` | timestamp  | -   | Record last update time |
+| Field        | Type         | Key  | Description             |
+| ------------ | ------------ | ---- | ----------------------- |
+| `key`        | `string`     | `PK` | Storage key             |
+| `value`      | `string`     | -    | Serialized value        |
+| `expires_at` | `timestamp?` | -    | When the entry expires  |
+| `created_at` | `timestamp`  | -    | Record creation time    |
+| `updated_at` | `timestamp`  | -    | Record last update time |
 
 Migrations are automatically handled when the plugin is initialized.
 
@@ -104,7 +92,49 @@ The Secondary Storage plugin provides a storage abstraction used by other plugin
 
 ### Usage Example
 
-The secondary storage plugin must be registered before plugins that depend on it (e.g., rate-limit).
+The secondary storage plugin must be registered before plugins that depend on it (e.g. `rate-limit` plugin).
+
+### Database Provider:
+
+`Standalone Mode:`
+
+```toml
+[plugins.secondary_storage]
+enabled = true
+provider = "database"
+
+[plugins.secondary_storage.database]
+cleanup_interval = "1m"
+```
+
+`Library Mode:`
+
+```go
+import (
+  "os"
+
+  authula "github.com/Authula/authula"
+  authulamodels "github.com/Authula/authula/models"
+  authulaconfig "github.com/Authula/authula/config"
+  secondarystorageplugin "github.com/Authula/authula/plugins/secondary-storage"
+)
+
+config := authulaconfig.NewConfig(/*...*/)
+auth := authula.New(&authula.AuthConfig{
+  Config: config,
+  Plugins: []authulamodels.Plugin{
+    secondarystorageplugin.New(secondarystorageplugin.SecondaryStoragePluginConfig{
+      Enabled:  true,
+      Provider: secondarystorageplugin.SecondaryStorageProviderDatabase,
+      Database: &secondarystorageplugin.DatabaseStorageConfig{
+        CleanupInterval: time.Minute,
+      },
+    }),
+  },
+})
+```
+
+### Redis Provider:
 
 `Standalone Mode:`
 
@@ -114,11 +144,14 @@ enabled = true
 provider = "redis"
 
 [plugins.secondary_storage.redis]
-url = "redis://localhost:6379"
-
-[plugins.ratelimit]
-enabled = true
-provider = "redis"  # Uses secondary storage for rate limit data
+# NOTE: It is highly recommended to set the Redis URL via the `REDIS_URL` environment variable rather than hardcoding it in the configuration file.
+# url = "redis://localhost:6379"
+# Optional: Specifies the maximum number of retries for failed Redis operations. Default is 3.
+max_retries = 3
+# Optional: Specifies the size of the Redis connection pool. Default is 10.
+pool_size = 10
+# Optional: Specifies the timeout for Redis connections. Default is 30s.
+pool_timeout = "30s"
 ```
 
 `Library Mode:`
@@ -129,26 +162,21 @@ import (
 
   authula "github.com/Authula/authula"
   authulaconfig "github.com/Authula/authula/config"
+  authulaenv "github.com/Authula/authula/env"
   secondarystorageplugin "github.com/Authula/authula/plugins/secondary-storage"
-  ratelimitplugin "github.com/Authula/authula/plugins/ratelimit"
 )
 
-config := authulaconfig.NewConfig()
-
+config := authulaconfig.NewConfig(/*...*/)
 auth := authula.New(&authula.AuthConfig{
   Config: config,
   Plugins: []authulamodels.Plugin{
-    // Secondary storage MUST be registered before rate-limit
-    secondarystorageplugin.New(secondarystoragetypes.SecondaryStoragePluginConfig{
+    secondarystorageplugin.New(secondarystorageplugin.SecondaryStoragePluginConfig{
       Enabled:  true,
       Provider: secondarystorageplugin.SecondaryStorageProviderRedis,
-      Redis: &secondarystoragetypes.RedisStorageConfig{
-        URL: os.Getenv("REDIS_URL"),
+      Redis: &secondarystorageplugin.RedisStorageConfig{
+        URL:  os.Getenv(authulaenv.EnvRedisURL),
+        // Optional Redis configuration parameters...
       },
-    }),
-    ratelimitplugin.New(ratelimitplugintypes.RateLimitPluginConfig{
-      Enabled:  true,
-      Provider: ratelimitplugin.RateLimitProviderRedis,
     }),
   },
 })
