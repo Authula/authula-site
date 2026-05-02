@@ -52,17 +52,25 @@ require_email_verified_on_invitation = true # Whether to require the invited use
 import (
   "time"
 
-  organizationsplugin "github.com/authula/authula/plugins/organizations"
-  organizationsplugintypes "github.com/authula/authula/plugins/organizations/types"
+  authulamodels "github.com/Authula/authula/models"
+  organizationsplugin "github.com/Authula/authula/plugins/organizations"
+  organizationsplugintypes "github.com/Authula/authula/plugins/organizations/types"
 )
 
-organizationsplugin.New(&organizationsplugintypes.OrganizationsPluginConfig{
-  Enabled:             true,
-  OrganizationsLimit:  10,
-  MembersLimit:        100,
-  InvitationsLimit:    100,
-  InvitationExpiresIn: 24 * time.Hour,
+organizationsplugin.New(organizationsplugintypes.OrganizationsPluginConfig{
+  Enabled:                          true,
+  OrganizationsLimit:               new(10),
+  MembersLimit:                     new(100),
+  InvitationsLimit:                 new(100),
+  InvitationExpiresIn:              7 * 24 * time.Hour,
   RequireEmailVerifiedOnInvitation: true,
+  SendOrganizationInvitationEmail: func(
+    params organizationsplugintypes.SendOrganizationInvitationEmailParams,
+    reqCtx *authulamodels.RequestContext,
+  ) error {
+    // Optionally handle email sending here...
+    return nil
+  },
   DatabaseHooks: &organizationsplugintypes.OrganizationsDatabaseHooksConfig{
     // Optional database hooks for custom logic on organization lifecycle events
   },
@@ -130,62 +138,62 @@ This plugin creates the following database tables:
 
 ### Table: `organizations`
 
-| Field        | Type      | Key | Description                                   |
-| ------------ | --------- | --- | --------------------------------------------- |
-| `id`         | string    | PK  | Unique identifier for the organization        |
-| `owner_id`   | string    | FK  | Reference to the organization owner (user)    |
-| `name`       | string    | -   | Organization name                             |
-| `slug`       | string    | -   | URL-friendly organization identifier (unique) |
-| `logo`       | string?   | -   | Organization logo URL                         |
-| `metadata`   | JSON      | -   | Additional organization metadata              |
-| `created_at` | timestamp | -   | Record creation time                          |
-| `updated_at` | timestamp | -   | Record last update time                       |
+| Field        | Type        | Key  | Description                                   |
+| ------------ | ----------- | ---- | --------------------------------------------- |
+| `id`         | `string`    | `PK` | Unique identifier for the organization        |
+| `owner_id`   | `string`    | `FK` | Reference to the organization owner (user)    |
+| `name`       | `string`    | -    | Organization name                             |
+| `slug`       | `string`    | -    | URL-friendly organization identifier (unique) |
+| `logo`       | `string?`   | -    | Organization logo URL                         |
+| `metadata`   | `JSON`      | -    | Additional organization metadata              |
+| `created_at` | `timestamp` | -    | Record creation time                          |
+| `updated_at` | `timestamp` | -    | Record last update time                       |
 
 ### Table: `organization_invitations`
 
-| Field             | Type      | Key | Description                                   |
-| ----------------- | --------- | --- | --------------------------------------------- |
-| `id`              | string    | PK  | Unique identifier for the invitation          |
-| `email`           | string    | -   | Email address being invited                   |
-| `inviter_id`      | string    | FK  | Reference to the user who sent the invitation |
-| `organization_id` | string    | FK  | Reference to the organization                 |
-| `role`            | string    | -   | Role assigned to the invited member           |
-| `status`          | string    | -   | Invitation status                             |
-| `expires_at`      | timestamp | -   | Invitation expiration time                    |
-| `created_at`      | timestamp | -   | Record creation time                          |
+| Field             | Type        | Key  | Description                                   |
+| ----------------- | ----------- | ---- | --------------------------------------------- |
+| `id`              | `string`    | `PK` | Unique identifier for the invitation          |
+| `email`           | `string`    | -    | Email address being invited                   |
+| `inviter_id`      | `string`    | `FK` | Reference to the user who sent the invitation |
+| `organization_id` | `string`    | `FK` | Reference to the organization                 |
+| `role`            | `string`    | -    | Role assigned to the invited member           |
+| `status`          | `string`    | -    | Invitation status                             |
+| `expires_at`      | `timestamp` | -    | Invitation expiration time                    |
+| `created_at`      | `timestamp` | -    | Record creation time                          |
 
 ### Table: `organization_members`
 
-| Field             | Type      | Key | Description                             |
-| ----------------- | --------- | --- | --------------------------------------- |
-| `id`              | string    | PK  | Unique identifier for the member record |
-| `organization_id` | string    | FK  | Reference to the organization           |
-| `user_id`         | string    | FK  | Reference to the user                   |
-| `role`            | string    | -   | Member's role within the organization   |
-| `created_at`      | timestamp | -   | Record creation time                    |
-| `updated_at`      | timestamp | -   | Record last update time                 |
+| Field             | Type        | Key  | Description                             |
+| ----------------- | ----------- | ---- | --------------------------------------- |
+| `id`              | `string`    | `PK` | Unique identifier for the member record |
+| `organization_id` | `string`    | `FK` | Reference to the organization           |
+| `user_id`         | `string`    | `FK` | Reference to the user                   |
+| `role`            | `string`    | -    | Member's role within the organization   |
+| `created_at`      | `timestamp` | -    | Record creation time                    |
+| `updated_at`      | `timestamp` | -    | Record last update time                 |
 
 ### Table: `organization_teams`
 
-| Field             | Type      | Key | Description                    |
-| ----------------- | --------- | --- | ------------------------------ |
-| `id`              | string    | PK  | Unique identifier for the team |
-| `organization_id` | string    | FK  | Reference to the organization  |
-| `name`            | string    | -   | Team name                      |
-| `slug`            | string    | -   | URL-friendly identifier        |
-| `description`     | string?   | -   | Description                    |
-| `metadata`        | JSON      | -   | Additional metadata            |
-| `created_at`      | timestamp | -   | Record creation time           |
-| `updated_at`      | timestamp | -   | Record last update time        |
+| Field             | Type        | Key  | Description                    |
+| ----------------- | ----------- | ---- | ------------------------------ |
+| `id`              | `string`    | `PK` | Unique identifier for the team |
+| `organization_id` | `string`    | `FK` | Reference to the organization  |
+| `name`            | `string`    | -    | Team name                      |
+| `slug`            | `string`    | -    | URL-friendly identifier        |
+| `description`     | `string?`   | -    | Description                    |
+| `metadata`        | `JSON`      | -    | Additional metadata            |
+| `created_at`      | `timestamp` | -    | Record creation time           |
+| `updated_at`      | `timestamp` | -    | Record last update time        |
 
 ### Table: `organization_team_members`
 
-| Field        | Type      | Key | Description                                  |
-| ------------ | --------- | --- | -------------------------------------------- |
-| `id`         | string    | PK  | Unique identifier for the team member record |
-| `team_id`    | string    | FK  | Reference to the team                        |
-| `member_id`  | string    | FK  | Reference to the organization member         |
-| `created_at` | timestamp | -   | Record creation time                         |
+| Field        | Type        | Key  | Description                                  |
+| ------------ | ----------- | ---- | -------------------------------------------- |
+| `id`         | `string`    | `PK` | Unique identifier for the team member record |
+| `team_id`    | `string`    | `FK` | Reference to the team                        |
+| `member_id`  | `string`    | `FK` | Reference to the organization member         |
+| `created_at` | `timestamp` | -    | Record creation time                         |
 
 Migrations are automatically handled when the plugin is initialized.
 
