@@ -44,13 +44,35 @@ enabled = true
 
 ```go
 import (
+  "github.com/Authula/authula"
+  authulaconfig "github.com/Authula/authula/config"
+  authulamodels "github.com/Authula/authula/models"
   sessionplugin "github.com/Authula/authula/plugins/session"
-  sessionplugintypes "github.com/Authula/authula/plugins/session/types"
 )
 
-sessionplugin.New(sessionplugintypes.SessionPluginConfig{
-  Enabled: true,
+config := authulaconfig.NewConfig(
+  authulaconfig.WithSession(authulamodels.SessionConfig{
+    CookieName:         "authula.session_token",
+    ExpiresIn:          24 * time.Hour,
+    UpdateAge:          5 * time.Minute,
+    CookieMaxAge:       24 * time.Hour,
+    Secure:             false,
+    HttpOnly:           true,
+    SameSite:           "lax",
+    MaxSessionsPerUser: 5,
+    AutoCleanup:        true,
+    CleanupInterval:    time.Minute,
+  }),
+)
+auth := authula.New(&authula.AuthConfig{
+  Config: config,
+  Plugins: []authulamodels.Plugin{
+    sessionplugin.New(sessionplugin.SessionPluginConfig{
+      Enabled: true,
+    }),
+  },
 })
+
 ```
 
 ---
@@ -82,13 +104,13 @@ The Session plugin provides the following hooks and capabilities:
 
 ```toml
 [[route_mappings]]
-method = "GET"
-path = "/some/path"
+paths = ["GET:/some/path"]
+# Requires authentication - returns 401 if session is missing or invalid
 plugins = ["session.auth"]
 
 [[route_mappings]]
-method = "GET"
-path = "/some/other/path"
+paths = ["GET:/some/other/path"]
+# Optional authentication - allows access even if session is missing or invalid
 plugins = ["session.auth.optional"]
 ```
 
@@ -97,19 +119,18 @@ plugins = ["session.auth.optional"]
 ```go
 import (
   authulaconfig "github.com/Authula/authula/config"
+  authulamodels "github.com/Authula/authula/models"
   sessionplugin "github.com/Authula/authula/plugins/session"
 )
 
 authulaconfig.NewConfig(
   authulaconfig.WithRouteMappings([]authulamodels.RouteMapping{
     {
-      Method:  "GET",
-      Path:    "/some/path",
+      Paths:   []string{"GET:/some/path"},
       Plugins: []string{sessionplugin.HookIDSessionAuth.String()},
     },
     {
-      Method:  "GET",
-      Path:    "/some/other/path",
+      Paths:   []string{"GET:/some/other/path"},
       Plugins: []string{sessionplugin.HookIDSessionAuthOptional.String()},
     },
   }),
