@@ -12,7 +12,7 @@ The Magic Link plugin provides passwordless authentication using email-based mag
 - **Passwordless Authentication** — Sign in via email without passwords
 - **Secure Token-Based Verification** — Cryptographically secure tokens with configurable expiration
 - **Configurable Expiration** — Set custom token expiration times
-- **Optional User Registration** — Allow new user registration on first sign-in
+- **Optional Sign-Up Prevention** — Prevent sign-ups for magic links
 - **Custom Email Sending** — Support for custom email sending functions
 - **Callback URL Support** — Redirect users to custom URLs after verification
 
@@ -33,35 +33,33 @@ disable_sign_up = false
 
 ```go
 import (
+	"time"
+
 	authulamodels "github.com/Authula/authula/models"
 	magiclinkplugin "github.com/Authula/authula/plugins/magic-link"
 	magiclinkplugintypes "github.com/Authula/authula/plugins/magic-link/types"
 )
 
 magiclinkplugin.New(magiclinkplugintypes.MagicLinkPluginConfig{
-	Enabled:     true,
-	ExpiresIn:   15 * time.Minute,
+	Enabled:       true,
+	ExpiresIn:     15 * time.Minute,
 	DisableSignUp: false,
-	// Optional: Custom email sender function
 	SendMagicLinkVerificationEmail: func(
-		email string,
-		url string,
-		token string,
+		params magiclinkplugintypes.SendMagicLinkVerificationEmailParams,
 		reqCtx *authulamodels.RequestContext,
 	) error {
-		// Implement your email sending logic here
+		// Optionally handle sending email here...
 		return nil
 	},
-}),
+})
 ```
 
 ### Configuration Options
 
-| Option            | Type     | Default | Description                                  |
-| ----------------- | -------- | ------- | -------------------------------------------- |
-| `enabled`         | boolean  | `true`  | Enable or disable the plugin                 |
-| `expires_in`      | duration | `"15m"` | Magic link token expiration time             |
-| `disable_sign_up` | boolean  | `false` | Allow new user registration on first sign-in |
+| Option            | Type            | Default | Description                      |
+| ----------------- | --------------- | ------- | -------------------------------- |
+| `expires_in`      | `time.Duration` | `"15m"` | Magic link token expiration time |
+| `disable_sign_up` | `bool`          | `false` | Prevent new user registration    |
 
 ---
 
@@ -166,4 +164,4 @@ export const authulaClient = createClient({
 - **Rate Limiting** — Consider rate limiting the `/magic-link/sign-in` endpoint to prevent email flooding attacks
 - **Email Verification** — For new user registration, consider additional verification steps before allowing account creation
 - **Token Hashing** — Tokens are automatically hashed before storage; never log or expose raw tokens
-- **Disable Sign-Up for Closed Systems** — Set `disable_sign_up = true` for invite-only or closed user bases
+- **Disable Sign-Up** — Set `disable_sign_up = true` for applications that do not want to allow new user registration via magic links
