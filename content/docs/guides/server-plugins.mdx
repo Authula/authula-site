@@ -26,10 +26,10 @@ Every plugin must implement the base `Plugin` interface:
 
 ```go
 type Plugin interface {
-    Metadata() PluginMetadata
-    Config() any
-    Init(ctx *PluginContext) error
-    Close() error
+  Metadata() PluginMetadata
+  Config() any
+  Init(ctx *PluginContext) error
+  Close() error
 }
 ```
 
@@ -44,11 +44,11 @@ The `PluginContext` provides plugins with access to core services:
 
 ```go
 type PluginContext struct {
-    DB              bun.IDB         // Database connection
-    Logger          Logger          // Logging service
-    EventBus        EventBus        // Event publishing/subscribing
-    ServiceRegistry ServiceRegistry // Access to other services
-    GetConfig       func() *Config  // Function to get current config
+  DB              bun.IDB         // Database connection
+  Logger          Logger          // Logging service
+  EventBus        EventBus        // Event publishing/subscribing
+  ServiceRegistry ServiceRegistry // Access to other services
+  GetConfig       func() *Config  // Function to get current config
 }
 ```
 
@@ -58,14 +58,14 @@ The `PluginRegistry` manages the lifecycle of all plugins:
 
 ```go
 type PluginRegistry interface {
-    Register(p Plugin) error
-    InitAll() error
-    RunMigrations(ctx context.Context) error
-    DropMigrations(ctx context.Context) error
-    Plugins() []Plugin
-    GetConfig() *Config
-    CloseAll()
-    GetPlugin(pluginID string) Plugin
+	Register(p Plugin) error
+	InitAll() error
+	RunMigrations(ctx context.Context) error
+	DropMigrations(ctx context.Context) error
+	Plugins() []Plugin
+	GetConfig() *Config
+	CloseAll()
+	GetPlugin(pluginID string) Plugin
 }
 ```
 
@@ -81,8 +81,8 @@ Implement `PluginWithMigrations` to include database schema changes:
 
 ```go
 type PluginWithMigrations interface {
-    Migrations(provider string) []migrations.Migration
-    DependsOn() []string
+  Migrations(provider string) []migrations.Migration
+  DependsOn() []string
 }
 ```
 
@@ -90,18 +90,48 @@ Example implementation:
 
 ```go
 func (p *MyPlugin) Migrations(provider string) []migrations.Migration {
-    return []migrations.Migration{
-        {
-            Name: "20250115000001_create_my_table",
-            Up:   `CREATE TABLE my_table (...)`,
-            Down: `DROP TABLE my_table`,
-        },
-    }
+  return migrations.ForProvider(provider, migrations.ProviderVariants{
+    "sqlite":   func() []migrations.Migration { return []migrations.Migration{sqliteInitial()} },
+    "postgres": func() []migrations.Migration { return []migrations.Migration{postgresInitial()} },
+    "mysql":    func() []migrations.Migration { return []migrations.Migration{mysqlInitial()} },
+  })
+}
+
+// Ideally place these in the following location within the plugin folder: /plugin-folder/migrationset/migrations.go
+func sqliteInitial() migrations.Migration {
+	return migrations.Migration{
+		Version: "yyyymmdd000000_some_table_initial",
+		Up: func(ctx context.Context, tx bun.Tx) error {
+			return migrations.ExecStatements(
+				ctx,
+				tx,
+				`PRAGMA foreign_keys = ON;`,
+				`CREATE TABLE IF NOT EXISTS some_table (
+          id TEXT NOT NULL PRIMARY KEY,
+        );`,
+			)
+		},
+		Down: func(ctx context.Context, tx bun.Tx) error {
+			return migrations.ExecStatements(
+				ctx,
+				tx,
+				`DROP TABLE IF EXISTS some_table;`,
+			)
+		},
+	}
+}
+
+func postgresInitial() migrations.Migration {
+  // ...
+}
+
+func mysqlInitial() migrations.Migration {
+  // ...
 }
 
 func (p *MyPlugin) DependsOn() []string {
-    // Return IDs of plugins this one depends on
-    return []string{} // or e.g., []string{"session", "email"}
+  // Return IDs of plugins this one depends on
+  return []string{} // or e.g., []string{"session", "email"}
 }
 ```
 
@@ -115,7 +145,7 @@ Implement `PluginWithRoutes` to add custom API endpoints:
 
 ```go
 type PluginWithRoutes interface {
-    Routes() []Route
+  Routes() []Route
 }
 ```
 
@@ -123,21 +153,21 @@ Example implementation:
 
 ```go
 func (p *MyPlugin) Routes() []models.Route {
-    return []models.Route{
-        {
-            Method: "GET",
-            Path:   "/api/my-plugin/status",
-            Handler: http.HandlerFunc(p.handleStatus),
-        },
-        {
-            Method: "POST",
-            Path:   "/api/my-plugin/action",
-            Middleware: []func(http.Handler) http.Handler{
-                p.authMiddleware(),
-            },
-            Handler: http.HandlerFunc(p.handleAction),
-        },
-    }
+  return []models.Route{
+    {
+      Method: "GET",
+      Path:   "/api/my-plugin/status",
+      Handler: http.HandlerFunc(p.handleStatus),
+    },
+    {
+      Method: "POST",
+      Path:   "/api/my-plugin/action",
+      Middleware: []func(http.Handler) http.Handler{
+        p.authMiddleware(),
+      },
+      Handler: http.HandlerFunc(p.handleAction),
+    },
+  }
 }
 ```
 
@@ -147,7 +177,7 @@ Implement `PluginWithMiddleware` to add global middleware:
 
 ```go
 type PluginWithMiddleware interface {
-    Middleware() []func(http.Handler) http.Handler
+  Middleware() []func(http.Handler) http.Handler
 }
 ```
 
@@ -157,8 +187,8 @@ Implement `AuthMethodProvider` to provide authentication mechanisms (e.g., sessi
 
 ```go
 type AuthMethodProvider interface {
-    AuthMiddleware() func(http.Handler) http.Handler
-    OptionalAuthMiddleware() func(http.Handler) http.Handler
+  AuthMiddleware() func(http.Handler) http.Handler
+  OptionalAuthMiddleware() func(http.Handler) http.Handler
 }
 ```
 
@@ -171,17 +201,7 @@ Implement `MiddlewareProvider` to provide global middleware independent of route
 
 ```go
 type MiddlewareProvider interface {
-    Middleware() func(http.Handler) http.Handler
-}
-```
-
-### Configuration Watchers (will be removed in a future version)
-
-Implement `PluginWithConfigWatcher` to receive real-time config updates:
-
-```go
-type PluginWithConfigWatcher interface {
-    OnConfigUpdate(config *Config) error
+  Middleware() func(http.Handler) http.Handler
 }
 ```
 
@@ -191,7 +211,7 @@ Implement `PluginWithHooks` to intercept and modify the request lifecycle:
 
 ```go
 type PluginWithHooks interface {
-    Hooks() []Hook
+  Hooks() []Hook
 }
 ```
 
@@ -201,10 +221,10 @@ type PluginWithHooks interface {
 type HookStage int
 
 const (
-    HookOnRequest HookStage = iota  // Executed for every request at the very start
-    HookBefore                      // Executed before route matching and handling
-    HookAfter                       // Executed after route handling but before response is sent
-    HookOnResponse                  // Executed after the response has been written
+  HookOnRequest HookStage = iota  // Executed for every request at the very start
+  HookBefore                      // Executed before route matching and handling
+  HookAfter                       // Executed after route handling but before response is sent
+  HookOnResponse                  // Executed after the response has been written
 )
 ```
 
@@ -212,12 +232,12 @@ const (
 
 ```go
 type Hook struct {
-    Stage    HookStage           // When the hook executes
-    PluginID string              // Plugin capability ID (optional)
-    Matcher  HookMatcher         // Optional function to filter requests
-    Handler  HookHandler         // The hook implementation
-    Order    int                 // Execution order (lower first, local to PluginID)
-    Async    bool                // If true, runs in background without blocking
+  Stage    HookStage           // When the hook executes
+  PluginID string              // Plugin capability ID (optional)
+  Matcher  HookMatcher         // Optional function to filter requests
+  Handler  HookHandler         // The hook implementation
+  Order    int                 // Execution order (lower first, local to PluginID)
+  Async    bool                // If true, runs in background without blocking
 }
 
 type HookMatcher func(reqCtx *RequestContext) bool
@@ -249,59 +269,59 @@ Example hook implementation:
 
 ```go
 func (p *MyPlugin) Hooks() []Hook {
-    return []Hook{
-        {
-            Stage:    HookBefore,
-            PluginID: "my-plugin",
-            Matcher:  p.matchSpecificPaths,
-            Handler:  p.validateRequest,
-            Order:    10,
-            Async:    false,
-        },
-        {
-            Stage:   HookAfter,
-            Handler: p.logRequestAsync,  // Side-effect only
-            Order:   100,
-            Async:   true,
-        },
-    }
+  return []Hook{
+    {
+      Stage:    HookBefore,
+      PluginID: "my-plugin",
+      Matcher:  p.matchSpecificPaths,
+      Handler:  p.validateRequest,
+      Order:    10,
+      Async:    false,
+    },
+    {
+      Stage:   HookAfter,
+      Handler: p.logRequestAsync,  // Side-effect only
+      Order:   100,
+      Async:   true,
+    },
+  }
 }
 
 func (p *MyPlugin) matchSpecificPaths(reqCtx *RequestContext) bool {
-    // Only execute hook for specific paths
-    return strings.HasPrefix(reqCtx.Path, "/api/protected")
+  // Only execute hook for specific paths
+  return strings.HasPrefix(reqCtx.Path, "/api/protected")
 }
 
 func (p *MyPlugin) validateRequest(reqCtx *RequestContext) error {
-    // Critical auth logic - must NOT be async
-    token := reqCtx.Headers.Get("Authorization")
-    if token == "" {
-        return fmt.Errorf("missing authorization token")
-    }
-    // Set user ID using the provided helper method
-    p.validateToken(token, reqCtx)
-    return nil
+  // Critical auth logic - must NOT be async
+  token := reqCtx.Headers.Get("Authorization")
+  if token == "" {
+    return fmt.Errorf("missing authorization token")
+  }
+  // Set user ID using the provided helper method
+  p.validateToken(token, reqCtx)
+  return nil
 }
 
 func (p *MyPlugin) validateToken(token string, reqCtx *RequestContext) {
-    // Validate token and extract user ID
-    userID := "validated-user-id"
-    reqCtx.SetUserIDInContext(userID)
+  // Validate token and extract user ID
+  userID := "validated-user-id"
+  reqCtx.SetUserIDInContext(userID)
 }
 
 func (p *MyPlugin) logRequestAsync(reqCtx *RequestContext) error {
-    // Side-effect logging - safe to be async
-    userIDStr := ""
-    if reqCtx.UserID != nil {
-        userIDStr = *reqCtx.UserID
-    }
-    p.logger.Info("Request processed",
-        "method", reqCtx.Method,
-        "path", reqCtx.Path,
-        "client_ip", reqCtx.ClientIP,
-        "user", userIDStr,
-    )
-    return nil
+  // Side-effect logging - safe to be async
+  userIDStr := ""
+  if reqCtx.UserID != nil {
+    userIDStr = *reqCtx.UserID
+  }
+  p.logger.Info("Request processed",
+    "method", reqCtx.Method,
+    "path", reqCtx.Path,
+    "client_ip", reqCtx.ClientIP,
+    "user", userIDStr,
+  )
+  return nil
 }
 ```
 
@@ -317,24 +337,24 @@ Here's a step-by-step guide to creating a custom plugin:
 package myplugin
 
 import (
-    "context"
-    "net/http"
+  "context"
+  "net/http"
 
-    "github.com/Authula/authula/models"
-    "github.com/Authula/authula/services"
+  "github.com/Authula/authula/models"
+  "github.com/Authula/authula/services"
 )
 
 type MyPlugin struct {
-    config       MyPluginConfig
-    logger       models.Logger
-    ctx          *models.PluginContext
-    userService  services.UserService
+  config       MyPluginConfig
+  logger       models.Logger
+  ctx          *models.PluginContext
+  userService  services.UserService
 }
 
 type MyPluginConfig struct {
-    Enabled bool   `json:"enabled" toml:"enabled"`
-    APIKey  string `json:"api_key" toml:"api_key"`
-    Timeout int    `json:"timeout" toml:"timeout"`
+  Enabled bool   `json:"enabled" toml:"enabled"`
+  APIKey  string `json:"api_key" toml:"api_key"`
+  Timeout int    `json:"timeout" toml:"timeout"`
 }
 ```
 
@@ -342,41 +362,41 @@ type MyPluginConfig struct {
 
 ```go
 func New(config MyPluginConfig) *MyPlugin {
-    return &MyPlugin{config: config}
+  return &MyPlugin{config: config}
 }
 
 func (p *MyPlugin) Metadata() models.PluginMetadata {
-    return models.PluginMetadata{
-        ID:          "my-plugin",
-        Version:     "1.0.0",
-        Description: "Provides custom functionality for my application",
-    }
+  return models.PluginMetadata{
+    ID:          "my-plugin",
+    Version:     "1.0.0",
+    Description: "Provides custom functionality for my application",
+  }
 }
 
 func (p *MyPlugin) Config() any {
-    return p.config
+  return p.config
 }
 
 func (p *MyPlugin) Init(ctx *models.PluginContext) error {
-    p.ctx = ctx
-    p.logger = ctx.Logger
+  p.ctx = ctx
+  p.logger = ctx.Logger
 
-    // Initialize services from the service registry
-    userService, ok := ctx.ServiceRegistry.Get(models.ServiceUser.String()).(services.UserService)
-    if !ok {
-        return fmt.Errorf("user service not available")
-    }
-    p.userService = userService
+  // Initialize services from the service registry
+  userService, ok := ctx.ServiceRegistry.Get(models.ServiceUser.String()).(services.UserService)
+  if !ok {
+    return fmt.Errorf("user service not available")
+  }
+  p.userService = userService
 
-    // Additional initialization logic here
-    p.logger.Info("MyPlugin initialized successfully")
-    return nil
+  // Additional initialization logic here
+  p.logger.Info("MyPlugin initialized successfully")
+  return nil
 }
 
 func (p *MyPlugin) Close() error {
-    // Cleanup resources
-    p.logger.Info("MyPlugin closed")
-    return nil
+  // Cleanup resources
+  p.logger.Info("MyPlugin closed")
+  return nil
 }
 ```
 
@@ -386,21 +406,21 @@ func (p *MyPlugin) Close() error {
 
 ```go
 func (p *MyPlugin) Routes() []Route {
-    return []Route{
-        {
-            Method:  "GET",
-            Path:    "/api/my-plugin/info",
-            Handler: http.HandlerFunc(p.handleInfo),
-        },
-    }
+  return []Route{
+    {
+      Method:  "GET",
+      Path:    "/api/my-plugin/info",
+      Handler: http.HandlerFunc(p.handleInfo),
+    },
+  }
 }
 
 func (p *MyPlugin) handleInfo(w http.ResponseWriter, r *http.Request) {
-    util.JSONResponse(w, http.StatusOK, map[string]interface{}{
-        "plugin_id":   p.Metadata().ID,
-        "version":     p.Metadata().Version,
-        "description": p.Metadata().Description,
-    })
+  util.JSONResponse(w, http.StatusOK, map[string]interface{}{
+    "plugin_id":   p.Metadata().ID,
+    "version":     p.Metadata().Version,
+    "description": p.Metadata().Description,
+  })
 }
 ```
 
@@ -408,49 +428,32 @@ func (p *MyPlugin) handleInfo(w http.ResponseWriter, r *http.Request) {
 
 ```go
 func (p *MyPlugin) Middleware() []func(http.Handler) http.Handler {
-    return []func(http.Handler) http.Handler{
-        p.customLoggingMiddleware,
-    }
+  return []func(http.Handler) http.Handler{
+    p.customLoggingMiddleware,
+  }
 }
 
 func (p *MyPlugin) customLoggingMiddleware(next http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        startTime := time.Now()
+  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    startTime := time.Now()
 
-        p.logger.Info("Request started",
-            "method", r.Method,
-            "path", r.URL.Path,
-            "timestamp", startTime,
-        )
+    p.logger.Info(
+      "Request started",
+      "method", r.Method,
+      "path", r.URL.Path,
+      "timestamp", startTime,
+    )
 
-        next.ServeHTTP(w, r)
+    next.ServeHTTP(w, r)
 
-        duration := time.Since(startTime)
-        p.logger.Info("Request completed",
-            "method", r.Method,
-            "path", r.URL.Path,
-            "duration", duration,
-        )
-    })
-}
-```
-
-#### Add Configuration Watcher (Optional)
-
-When the configuration is updated in the database, the Config Manager plugin will call `OnConfigUpdate` with the new config. Use `ParsePluginConfig` to update your internal config struct while preserving pointer references:
-
-```go
-func (p *MyPlugin) OnConfigUpdate(config *Config) error {
-    // Handle configuration updates
-    var newConfig MyPluginConfig
-    if err := util.ParsePluginConfig(config, p.Metadata().ID, &newConfig); err != nil {
-        p.logger.Error("Failed to load updated config", "error", err)
-        return err
-    }
-
-    p.config = newConfig
-    p.logger.Info("Configuration updated for MyPlugin")
-    return nil
+    duration := time.Since(startTime)
+    p.logger.Info(
+      "Request completed",
+      "method", r.Method,
+      "path", r.URL.Path,
+      "duration", duration,
+    )
+  })
 }
 ```
 
@@ -460,24 +463,24 @@ To use your plugin, you need to add it to your plugins array in library mode:
 
 ```go
 import (
-    authula "github.com/Authula/authula"
-    authulaconfig "github.com/Authula/authula/config"
-    authulamodels "github.com/Authula/authula/models"
+  "github.com/Authula/authula"
+  authulaconfig "github.com/Authula/authula/config"
+  authulamodels "github.com/Authula/authula/models"
 
-    myplugin "path/to/your/plugin"
-    myplugintypes "path/to/your/plugin/types"
+  myplugin "path/to/your/plugin"
+  myplugintypes "path/to/your/plugin/types"
 )
 
 config := authulaconfig.NewConfig(/*...*/)
-auth := authula.New(authula.AuthConfig{
-    Config: config,
-    Plugins: []authulamodels.Plugin{
-        myplugin.New(myplugintypes.MyPluginConfig{
-            Enabled: true,
-            APIKey:  "your-api-key",
-            Timeout: 30,
-        }),
-    },
+auth := authula.New(&authula.AuthConfig{
+  Config: config,
+  Plugins: []authulamodels.Plugin{
+    myplugin.New(myplugintypes.MyPluginConfig{
+      Enabled: true,
+      APIKey:  "your-api-key",
+      Timeout: 30,
+    }),
+  },
 })
 ```
 
@@ -532,130 +535,131 @@ Here's a complete example of a plugin that logs incoming requests with timing an
 package logger
 
 import (
-    "fmt"
-    "net/http"
-    "strings"
-    "time"
+  "fmt"
+  "net/http"
+  "strings"
+  "time"
 
-    "github.com/Authula/authula/models"
+  "github.com/Authula/authula/models"
 )
 
 type LoggerPlugin struct {
-    config LoggerPluginConfig
-    logger models.Logger
-    ctx    *models.PluginContext
+  config LoggerPluginConfig
+  logger models.Logger
+  ctx    *models.PluginContext
 }
 
 type LoggerPluginConfig struct {
-    Enabled     bool   `json:"enabled" toml:"enabled"`
-    LogRequests bool   `json:"log_requests" toml:"log_requests"`
-    LogLevel    string `json:"log_level" toml:"log_level"` // "debug", "info"
+  Enabled     bool   `json:"enabled" toml:"enabled"`
+  LogRequests bool   `json:"log_requests" toml:"log_requests"`
+  LogLevel    string `json:"log_level" toml:"log_level"` // "debug", "info"
 }
 
 func New(config LoggerPluginConfig) *LoggerPlugin {
-    return &LoggerPlugin{config: config}
+  return &LoggerPlugin{config: config}
 }
 
 func (p *LoggerPlugin) Metadata() models.PluginMetadata {
-    return models.PluginMetadata{
-        ID:          "logger",
-        Version:     "1.0.0",
-        Description: "Logs incoming requests with timing and detailed information",
-    }
+  return models.PluginMetadata{
+    ID:          "logger",
+    Version:     "1.0.0",
+    Description: "Logs incoming requests with timing and detailed information",
+  }
 }
 
 func (p *LoggerPlugin) Config() any {
-    return p.config
+  return p.config
 }
 
 func (p *LoggerPlugin) Init(ctx *models.PluginContext) error {
-    p.ctx = ctx
-    p.logger = ctx.Logger
+  p.ctx = ctx
+  p.logger = ctx.Logger
 
-    if p.config.LogRequests {
-        p.logger.Info("Request logging enabled", "level", p.config.LogLevel)
-    }
-    return nil
+  if p.config.LogRequests {
+    p.logger.Info("Request logging enabled", "level", p.config.LogLevel)
+  }
+
+  return nil
 }
 
 func (p *LoggerPlugin) Hooks() []models.Hook {
-    return []models.Hook{
-        // Log the start of each request
-        {
-            Stage: models.HookOnRequest,
-            Matcher: func(reqCtx *models.RequestContext) bool {
-                return p.config.LogRequests
-            },
-            Handler: p.logRequestStart,
-            Order:   10,
-            Async:   false, // Must be sync to capture start time
-        },
-        // Log after request handling (side-effect logging)
-        {
-            Stage: models.HookAfter,
-            Matcher: func(reqCtx *models.RequestContext) bool {
-                return p.config.LogRequests
-            },
-            Handler: p.logRequestMetrics,
-            Order:   20,
-            Async:   true, // Safe as async - side-effect only
-        },
-    }
+  return []models.Hook{
+    // Log the start of each request
+    {
+      Stage: models.HookOnRequest,
+      Matcher: func(reqCtx *models.RequestContext) bool {
+        return p.config.LogRequests
+      },
+      Handler: p.logRequestStart,
+      Order:   10,
+      Async:   false, // Must be sync to capture start time
+    },
+    // Log after request handling (side-effect logging)
+    {
+      Stage: models.HookAfter,
+      Matcher: func(reqCtx *models.RequestContext) bool {
+        return p.config.LogRequests
+      },
+      Handler: p.logRequestMetrics,
+      Order:   20,
+      Async:   true, // Safe as async - side-effect only
+    },
+  }
 }
 
 func (p *LoggerPlugin) logRequestStart(reqCtx *models.RequestContext) error {
-    startTime := time.Now()
-    reqCtx.Values["start_time"] = startTime
+  startTime := time.Now()
+  reqCtx.Values["start_time"] = startTime
 
-    if p.config.LogLevel == "debug" {
-        p.logger.Debug(fmt.Sprintf(
-            "Request started: %s %s from %s",
-            reqCtx.Method,
-            reqCtx.Path,
-            reqCtx.ClientIP,
-        ))
-    }
-    return nil
+  if p.config.LogLevel == "debug" {
+    p.logger.Debug(fmt.Sprintf(
+      "Request started: %s %s from %s",
+      reqCtx.Method,
+      reqCtx.Path,
+      reqCtx.ClientIP,
+    ))
+  }
+  return nil
 }
 
 func (p *LoggerPlugin) logRequestMetrics(reqCtx *models.RequestContext) error {
-    startTime, ok := reqCtx.Values["start_time"].(time.Time)
-    if !ok {
-        return nil // No start time recorded
-    }
+  startTime, ok := reqCtx.Values["start_time"].(time.Time)
+  if !ok {
+    return nil // No start time recorded
+  }
 
-    duration := time.Since(startTime)
-    statusCode := reqCtx.ResponseStatus
-    userIDStr := ""
-    if reqCtx.UserID != nil {
-        userIDStr = *reqCtx.UserID
-    }
+  duration := time.Since(startTime)
+  statusCode := reqCtx.ResponseStatus
+  userIDStr := ""
+  if reqCtx.UserID != nil {
+    userIDStr = *reqCtx.UserID
+  }
 
-    logMsg := fmt.Sprintf(
-        "Request completed: %s %s -> %d in %v",
-        reqCtx.Method,
-        reqCtx.Path,
-        statusCode,
-        duration,
-    )
+  logMsg := fmt.Sprintf(
+    "Request completed: %s %s -> %d in %v",
+    reqCtx.Method,
+    reqCtx.Path,
+    statusCode,
+    duration,
+  )
 
-    if userIDStr != "" {
-        logMsg += fmt.Sprintf(" (User: %s)", userIDStr)
-    }
+  if userIDStr != "" {
+    logMsg += fmt.Sprintf(" (User: %s)", userIDStr)
+  }
 
-    // Log errors with Error level, others with Info
-    if statusCode >= 400 {
-        p.logger.Error(logMsg)
-    } else {
-        p.logger.Info(logMsg)
-    }
+  // Log errors with Error level, others with Info
+  if statusCode >= 400 {
+    p.logger.Error(logMsg)
+  } else {
+    p.logger.Info(logMsg)
+  }
 
-    return nil
+  return nil
 }
 
 func (p *LoggerPlugin) Close() error {
-    p.logger.Info("Request logger plugin shutting down")
-    return nil
+  p.logger.Info("Request logger plugin shutting down")
+  return nil
 }
 ```
 
