@@ -1,0 +1,133 @@
+# This workflow runs daily to sync plugin code with documentation utilising an AI agent.
+name: Daily Docs Sync
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  list-plugins:
+    runs-on: ubuntu-latest
+
+    outputs:
+      plugin_list: ${{ steps.set-plugins-list.outputs.list }}
+
+    steps:
+      - name: Checkout Site & Docs Repo
+        uses: actions/checkout@v6
+        with:
+          path: authula-site
+
+      - name: Checkout Main Repo
+        uses: actions/checkout@v6
+        with:
+          repository: Authula/authula
+          path: authula
+
+      - id: set-plugins-list
+        run: |
+          # Get list of plugin names as a JSON array
+          echo "list=$(ls authula/plugins | jq -R . | jq -s -c .)" >> $GITHUB_OUTPUT
+
+  sync-plugins:
+    needs: list-plugins
+
+    strategy:
+      matrix:
+        plugin: ${{ fromJson(needs.list-plugins.outputs.plugin_list) }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Copy Agent Skills
+        run: |
+          mkdir -p .agents
+          cp -r authula-site/.agents/skills .agents/
+
+      - name: Install Goose CLI
+        run: |
+          mkdir -p /home/runner/.local/bin
+          curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh \
+            | GOOSE_VERSION=v1.33.1 CONFIGURE=false GOOSE_BIN_DIR=/home/runner/.local/bin bash
+          echo "/home/runner/.local/bin" >> $GITHUB_PATH
+
+      - name: Configure Goose
+        run: |
+          mkdir -p ~/.config/goose
+          cat <<EOF > ~/.config/goose/config.yaml
+          GOOSE_MODE: auto
+          GOOSE_PROVIDER: custom_deepseek
+          GOOSE_MODEL: deepseek-v4-flash
+          GOOSE_TEMPERATURE: 1
+          GOOSE_TELEMETRY_ENABLED=false
+          extensions:
+            skills:
+              enabled: true
+              type: platform
+              name: skills
+              description: Load and use skills from relevant directories
+              bundled: true
+              available_tools: []
+            todo:
+              enabled: true
+              type: platform
+              name: todo
+              description: Enable a todo list for goose so it can keep track of what it is doing
+              bundled: true
+              available_tools: []
+            extensionmanager:
+              enabled: true
+              type: platform
+              name: Extension Manager
+              description: Enable extension management tools for discovering, enabling, and disabling extensions
+              bundled: true
+              available_tools: []
+            developer:
+              enabled: true
+              type: builtin
+              name: developer
+              description: Code editing and shell access
+              display_name: Developer Tools
+              timeout: 300
+              bundled: true
+              available_tools: []
+          keyring: false
+          EOF
+
+      - name: Create Goose instructions file
+        run: |
+          cat << 'EOF' | sed 's/^          //' > instructions.md
+          # Documentation Sync Task for ${{ matrix.plugin }}
+
+          ## Analysis & Review Phase
+
+          Read all the code within the `${{ matrix.plugin }}` plugin in the Authula codebase under the `./authula/plugins/${{ matrix.plugin }}/` directory. Also read the documentation page for the `${{ matrix.plugin }}` plugin in the `./authula-site/content/docs/plugins/${{ matrix.plugin }}.mdx` file. You will need to navigate into the respective folders to read the files using the developer extension.
+
+          ## Update Phase
+
+          Based on the findings from the "Analysis & Review" phase above, if discrepancies are found, use the developer extension to directly modify the plugin's `.mdx` file to reflect the current state of the plugin whilst utilising the `plugin-documentation` skill to make sure you adhere to the correct structure and approach of writing plugin documentation.
+
+          ## Commit & Push Phase
+
+          Once all the steps above are finished and the documentation edits are complete, then run the following steps using the developer extension:
+          1. Navigate to the root of the `authula-site` folder by running: `cd ./authula-site/`. Verify you are in the correct directory by running `pwd` and ensuring it outputs the path to the `authula-site` folder.
+          2. Create a new git branch: `git checkout -b <feature branch>`
+          3. Add all changes: `git add .`
+          4. Commit with conventional commits format: `git commit -m "docs: <your commit message here>"`
+          5. Push the branch with: `git push`
+          6. Use the GitHub CLI to create a pull request: `gh pr create --base main --head <feature branch> --title "<title message>" --body "<body message>"`
+
+          ## Important Guidelines
+
+          - Use a subagent to run the "Analysis & Review" phases and make it summarise the findings.
+          - NEVER push changes directly to the `main` branch.
+          EOF
+
+      - name: Run Goose for ${{ matrix.plugin }}
+        run: |
+          goose run -t "$(cat ./instructions.md)"
