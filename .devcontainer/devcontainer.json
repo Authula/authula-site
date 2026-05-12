@@ -29,7 +29,7 @@
         "dbaeumer.vscode-eslint",
         "vscode-icons-team.vscode-icons",
         "eamodio.gitlens",
-        "prettier.prettier-vscode",
+        "esbenp.prettier-vscode",
         "aaron-bond.better-comments",
         "codeandstuff.package-json-upgrade",
         "dsznajder.es7-react-js-snippets",
