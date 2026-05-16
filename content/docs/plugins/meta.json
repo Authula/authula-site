@@ -3,7 +3,6 @@
     "access-control",
     "admin",
     "bearer",
-    "config-manager",
     "csrf",
     "email-password",
     "email",
