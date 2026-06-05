@@ -147,23 +147,24 @@ authHook := models.Hook{
 // Only execute hook for admin routes
 adminOnlyHook := models.Hook{
     Stage: models.HookBefore,
-    Matcher: func(ctx *models.RequestContext) bool {
+    Matcher: func(reqCtx *models.RequestContext) bool {
         // Only run for paths starting with /admin
-        return strings.HasPrefix(ctx.Path, "/admin")
+        return strings.HasPrefix(reqCtx.Path, "/admin")
     },
-    Handler: func(ctx *models.RequestContext) error {
-        userID := ctx.UserID
-        if userID == nil {
-            ctx.SetResponse(401, nil, []byte(`{"error": "Authentication required"}`))
-            ctx.Handled = true
+    Handler: func(reqCtx *models.RequestContext) error {
+        if reqCtx.Actor == nil || reqCtx.Actor.Type != models.ActorUser {
+            reqCtx.SetJSONResponse(http.StatusUnauthorized, map[string]any{"message": "Authentication required"})
+            reqCtx.Handled = true
             return nil
         }
 
+        userID := reqCtx.Actor.ID
+
         // Check if user has admin role
-        isAdmin, err := userHasRole(*userID, "admin")
+        isAdmin, err := hasRole(userID, "admin")
         if err != nil || !isAdmin {
-            ctx.SetResponse(403, nil, []byte(`{"error": "Admin access required"}`))
-            ctx.Handled = true
+            reqCtx.SetJSONResponse(http.StatusForbidden, map[string]any{"message": "Admin access required"})
+            reqCtx.Handled = true
             return nil
         }
 
@@ -179,16 +180,21 @@ adminOnlyHook := models.Hook{
 setUserDataHook := models.Hook{
     Stage: models.HookBefore,
     Order: 0,
-    Handler: func(ctx *models.RequestContext) error {
-        userID := ctx.UserID
-        if userID != nil {
+    Handler: func(reqCtx *models.RequestContext) error {
+        if reqCtx.Actor == nil || reqCtx.Actor.Type != models.ActorUser {
+            return nil // No user, skip
+        }
+
+        userID := reqCtx.Actor.ID
+        if userID != "" {
             // Fetch user profile and store in Values for other hooks
-            userProfile, err := getUserProfile(*userID)
+            userProfile, err := getUserProfile(userID)
             if err != nil {
                 return err
             }
-            ctx.Values["user_profile"] = userProfile
+            reqCtx.Values["user_profile"] = userProfile
         }
+
         return nil
     },
 }
@@ -197,10 +203,10 @@ setUserDataHook := models.Hook{
 auditLogHook := models.Hook{
     Stage: models.HookAfter,
     Order: 1, // Must run after setUserDataHook
-    Handler: func(ctx *models.RequestContext) error {
-        if profile, exists := ctx.Values["user_profile"]; exists {
+    Handler: func(reqCtx *models.RequestContext) error {
+        if profile, exists := reqCtx.Values["user_profile"]; exists {
             // Log the action with user information
-            logAuditEvent(profile.(UserProfile), ctx.Path, ctx.Method)
+            logAuditEvent(profile.(UserProfile), reqCtx.Path, reqCtx.Method)
         }
         return nil
     },
@@ -214,14 +220,19 @@ auditLogHook := models.Hook{
 analyticsHook := models.Hook{
     Stage: models.HookOnResponse,
     Async: true,
-    Handler: func(ctx *models.RequestContext) error {
+    Handler: func(reqCtx *models.RequestContext) error {
+        if reqCtx.Actor == nil || reqCtx.Actor.Type != models.ActorUser {
+            return nil // No user, skip analytics
+        }
+
         // Track page views, user actions, etc.
         trackEvent("page_view", map[string]interface{}{
-            "path":     ctx.Path,
-            "method":   ctx.Method,
-            "clientIP": ctx.ClientIP,
-            "userID":   ctx.UserID,
+            "path":     reqCtx.Path,
+            "method":   reqCtx.Method,
+            "clientIP": reqCtx.ClientIP,
+            "userID":   reqCtx.Actor.ID,
         })
+
         return nil
     },
 }
@@ -235,11 +246,11 @@ rateLimitHook := models.Hook{
     Stage:    models.HookBefore,
     PluginID: "ratelimit",
     Order:    0,
-    Handler: func(ctx *models.RequestContext) error {
+    Handler: func(reqCtx *models.RequestContext) error {
         // Apply rate limiting only to routes that have "ratelimit" in their metadata
-        if err := checkRateLimit(ctx.ClientIP); err != nil {
-            ctx.SetResponse(429, nil, []byte(`{"error": "Rate limit exceeded"}`))
-            ctx.Handled = true
+        if err := checkRateLimit(reqCtx.ClientIP); err != nil {
+            reqCtx.SetJSONResponse(http.StatusTooManyRequests, map[string]any{"message": "Rate limit exceeded"})
+            reqCtx.Handled = true
             return nil
         }
         return nil
@@ -269,7 +280,7 @@ rateLimitHook := models.Hook{
 
 ### 4. Leverage the Values Map
 
-- Use `ctx.Values` to share data between hooks
+- Use `reqCtx.Values` to share data between hooks
 - Store computed values that other hooks might need
 - Avoid storing sensitive information in Values
 

@@ -5,490 +5,327 @@ description: Extend Authula functionality with custom plugins via Go.
 
 ## Overview
 
-The Authula plugin system provides a flexible and extensible architecture that allows developers to extend the authentication framework with custom functionality. The plugin system is designed around interfaces and follows a modular approach that enables:
-
-- Easy integration of new authentication methods
-- Custom hooks and routing
-- Database migrations
-- Request lifecycle hooks
+Authula's plugin system lets you extend the authentication framework with custom functionality. Each plugin implements a base interface and can optionally add routes, migrations, middleware, hooks, or auth methods.
 
 ---
 
 ## Core Architecture
 
-### Plugin IDs
-
-Each plugin is identified by a `PluginID` constant e.g. `email_password`, `oauth2`, `session`. This allows plugins to be referenced in route metadata and hook definitions for conditional execution.
-
 ### Plugin Interface
 
-Every plugin must implement the base `Plugin` interface:
+Every plugin must implement this:
 
 ```go
 type Plugin interface {
-  Metadata() PluginMetadata
-  Config() any
-  Init(ctx *PluginContext) error
-  Close() error
+    Metadata() PluginMetadata
+    Config() any
+    Init(ctx *PluginContext) error
+    Close() error
 }
 ```
 
-- `Metadata()` - Returns information about the plugin (ID, version, description)
-- `Config()` - Returns the plugin's configuration structure
-- `Init(ctx *PluginContext)` - Initializes the plugin with the provided context
-- `Close()` - Cleans up resources when the plugin is shut down
+| Method       | Purpose                                                           |
+| ------------ | ----------------------------------------------------------------- |
+| `Metadata()` | Returns plugin ID, version, description                           |
+| `Config()`   | Returns the typed config struct                                   |
+| `Init(ctx)`  | Initialize with access to DB, logger, event bus, service registry |
+| `Close()`    | Clean up resources on shutdown                                    |
 
 ### Plugin Context
 
-The `PluginContext` provides plugins with access to core services:
-
 ```go
 type PluginContext struct {
-  DB              bun.IDB         // Database connection
-  Logger          Logger          // Logging service
-  EventBus        EventBus        // Event publishing/subscribing
-  ServiceRegistry ServiceRegistry // Access to other services
-  GetConfig       func() *Config  // Function to get current config
+    DB              bun.IDB
+    Logger          Logger
+    EventBus        EventBus
+    ServiceRegistry ServiceRegistry
+    GetConfig       func() *Config
 }
 ```
 
-### Plugin Registry
+### Service Registry
 
-The `PluginRegistry` manages the lifecycle of all plugins:
+Plugins communicate by registering and retrieving services:
 
 ```go
-type PluginRegistry interface {
-	Register(p Plugin) error
-	InitAll() error
-	RunMigrations(ctx context.Context) error
-	DropMigrations(ctx context.Context) error
-	Plugins() []Plugin
-	GetConfig() *Config
-	CloseAll()
-	GetPlugin(pluginID string) Plugin
+type ServiceRegistry interface {
+    Register(name string, service any)
+    Get(name string) any
 }
 ```
 
 ---
 
-## Plugin Capabilities
+## Optional Capabilities
 
-Plugins can implement optional interfaces to provide additional functionality:
+Plugins implement these optional interfaces to add functionality:
 
-### Database Migrations
-
-Implement `PluginWithMigrations` to include database schema changes:
+### `PluginWithMigrations` — Database Migrations
 
 ```go
 type PluginWithMigrations interface {
-  Migrations(provider string) []migrations.Migration
-  DependsOn() []string
+    Migrations(provider string) []migrations.Migration
+    DependsOn() []string
 }
 ```
-
-Example implementation:
 
 ```go
 func (p *MyPlugin) Migrations(provider string) []migrations.Migration {
-  return migrations.ForProvider(provider, migrations.ProviderVariants{
-    "sqlite":   func() []migrations.Migration { return []migrations.Migration{sqliteInitial()} },
-    "postgres": func() []migrations.Migration { return []migrations.Migration{postgresInitial()} },
-    "mysql":    func() []migrations.Migration { return []migrations.Migration{mysqlInitial()} },
-  })
+    return migrations.ForProvider(provider, migrations.ProviderVariants{
+        "sqlite":   func() []migrations.Migration { return []migrations.Migration{mySQLite()} },
+        "postgres": func() []migrations.Migration { return []migrations.Migration{myPostgres()} },
+    })
 }
 
-// Ideally place these in the following location within the plugin folder: /plugin-folder/migrationset/migrations.go
-func sqliteInitial() migrations.Migration {
-	return migrations.Migration{
-		Version: "yyyymmdd000000_some_table_initial",
-		Up: func(ctx context.Context, tx bun.Tx) error {
-			return migrations.ExecStatements(
-				ctx,
-				tx,
-				`PRAGMA foreign_keys = ON;`,
-				`CREATE TABLE IF NOT EXISTS some_table (
-          id TEXT NOT NULL PRIMARY KEY,
-        );`,
-			)
-		},
-		Down: func(ctx context.Context, tx bun.Tx) error {
-			return migrations.ExecStatements(
-				ctx,
-				tx,
-				`DROP TABLE IF EXISTS some_table;`,
-			)
-		},
-	}
-}
+func (p *MyPlugin) DependsOn() []string { return nil }
 
-func postgresInitial() migrations.Migration {
-  // ...
-}
-
-func mysqlInitial() migrations.Migration {
-  // ...
-}
-
-func (p *MyPlugin) DependsOn() []string {
-  // Return IDs of plugins this one depends on
-  return []string{} // or e.g., []string{"session", "email"}
+func mySQLite() migrations.Migration {
+    return migrations.Migration{
+        Version: "20250101000000_create_my_table",
+        Up: func(ctx context.Context, tx bun.Tx) error {
+            return migrations.ExecStatements(ctx, tx,
+                `CREATE TABLE IF NOT EXISTS my_table (
+                  id TEXT NOT NULL PRIMARY KEY
+                );`,
+            )
+        },
+        Down: func(ctx context.Context, tx bun.Tx) error {
+            return migrations.ExecStatements(
+              ctx,
+              tx,
+              `DROP TABLE IF EXISTS my_table;`
+            )
+        },
+    }
 }
 ```
 
-Migration files should follow the naming pattern:
-
-- `<timestamp>_<description>` - Should be descriptive and unique
-
-### HTTP Routes
-
-Implement `PluginWithRoutes` to add custom API endpoints:
+### `PluginWithRoutes` — HTTP Routes
 
 ```go
 type PluginWithRoutes interface {
-  Routes() []Route
+    Routes() []Route
 }
 ```
-
-Example implementation:
 
 ```go
 func (p *MyPlugin) Routes() []models.Route {
-  return []models.Route{
-    {
-      Method: "GET",
-      Path:   "/api/my-plugin/status",
-      Handler: http.HandlerFunc(p.handleStatus),
-    },
-    {
-      Method: "POST",
-      Path:   "/api/my-plugin/action",
-      Middleware: []func(http.Handler) http.Handler{
-        p.authMiddleware(),
-      },
-      Handler: http.HandlerFunc(p.handleAction),
-    },
-  }
+    return []models.Route{
+        {
+            Method:  "GET",
+            Path:    "/api/my-plugin/status",
+            Handler: http.HandlerFunc(p.handleStatus),
+        },
+    }
 }
 ```
 
-### Middleware (will be removed in favor of hooks in a future version)
-
-Implement `PluginWithMiddleware` to add global middleware:
+### `PluginWithMiddleware` — Global Middleware
 
 ```go
 type PluginWithMiddleware interface {
-  Middleware() []func(http.Handler) http.Handler
+    Middleware() []func(http.Handler) http.Handler
 }
 ```
 
-### Authentication Method Provider
-
-Implement `AuthMethodProvider` to provide authentication mechanisms (e.g., session, bearer token, OAuth2):
+### `AuthMethodProvider` — Authentication Middleware
 
 ```go
 type AuthMethodProvider interface {
-  AuthMiddleware() func(http.Handler) http.Handler
-  OptionalAuthMiddleware() func(http.Handler) http.Handler
+    AuthMiddleware() func(http.Handler) http.Handler
+    OptionalAuthMiddleware() func(http.Handler) http.Handler
 }
 ```
 
-- `AuthMiddleware()` - Returns middleware that enforces authentication (fails if user not authenticated)
-- `OptionalAuthMiddleware()` - Returns middleware that authenticates if credentials present, but allows unauthenticated requests
+- `AuthMiddleware()` — rejects unauthenticated requests
+- `OptionalAuthMiddleware()` — authenticates if credentials present, allows anonymous
 
-### Global Middleware Provider
-
-Implement `MiddlewareProvider` to provide global middleware independent of routes:
-
-```go
-type MiddlewareProvider interface {
-  Middleware() func(http.Handler) http.Handler
-}
-```
-
-### Request Lifecycle Hooks
-
-Implement `PluginWithHooks` to intercept and modify the request lifecycle:
+### `PluginWithHooks` — Request Lifecycle Hooks
 
 ```go
 type PluginWithHooks interface {
-  Hooks() []Hook
+    Hooks() []Hook
 }
 ```
 
-**Hook Stages** define when a hook executes:
+Four hook stages:
 
 ```go
-type HookStage int
-
-const (
-  HookOnRequest HookStage = iota  // Executed for every request at the very start
-  HookBefore                      // Executed before route matching and handling
-  HookAfter                       // Executed after route handling but before response is sent
-  HookOnResponse                  // Executed after the response has been written
-)
+HookOnRequest  // Very start of every request
+HookBefore     // Before route matching and handling
+HookAfter      // After route handling, before response sent
+HookResponse   // After response written
 ```
 
-**Hook Definition:**
+Hook struct:
 
 ```go
 type Hook struct {
-  Stage    HookStage           // When the hook executes
-  PluginID string              // Plugin capability ID (optional)
-  Matcher  HookMatcher         // Optional function to filter requests
-  Handler  HookHandler         // The hook implementation
-  Order    int                 // Execution order (lower first, local to PluginID)
-  Async    bool                // If true, runs in background without blocking
+    Stage    HookStage
+    PluginID string              // Optional — filters by route metadata["plugins"]
+    Matcher  HookMatcher         // Optional — filters by request context
+    Handler  HookHandler         // The hook implementation
+    Order    int                 // Execution order (local to PluginID)
+    Async    bool                // Side-effects only — never auth/security
 }
-
-type HookMatcher func(reqCtx *RequestContext) bool
-type HookHandler func(reqCtx *RequestContext) error
 ```
 
-You can find all the info regarding context here: [RequestContext](https://github.com/Authula/authula/blob/main/models/context.go)
+**Execution rules:**
 
-Common helper methods:
-
-- `SetUserIDInContext(userID string)` - Sets user ID in both RequestContext and Go context
-- `SetResponse(status int, headers http.Header, body []byte)` - Capture custom response
-- `SetJSONResponse(status int, payload any)` - Capture JSON response
-
-**Execution Semantics:**
-
-- Hooks at each stage execute in order: sorted by `PluginID` first (grouping), then by `Order` within each plugin
-- `Order` values are local to a plugin (only compared against other hooks with the same `PluginID`)
-- Hooks without a `PluginID` execute for all routes; hooks with `PluginID` only execute if listed in route metadata `plugins` field
-- If a hook's `Matcher` returns false, the hook is skipped for that request
-- If a hook's `Handler` returns an error, it is logged but does not stop further hook execution
-- If a hook sets `reqCtx.Handled=true`, execution of subsequent hooks at that stage stops
-- **Async hooks** (`Async=true`) execute in background goroutines and do not block the response
-  - Use async only for side-effects: logging, analytics, events, webhooks, secondary storage
-  - Must never be used for auth validation, CSRF checks, rate-limiting, or security-critical operations
-  - Execute with timeout to prevent goroutine leaks and have no access to response writer
-
-Example hook implementation:
+- Hooks without `PluginID` run for all routes; with `PluginID` only if listed in route metadata
+- Hooks sorted by `PluginID` (grouping), then by `Order` within each group
+- `Matcher` returning `false` skips the hook
+- `Handler` returning an error is logged but doesn't stop other hooks
+- Setting `reqCtx.Handled = true` stops subsequent hooks at that stage
+- **Async hooks** run in background goroutines for side-effects only (logging, analytics, events, webhooks). Never use for auth, CSRF, rate-limiting, or security.
 
 ```go
-func (p *MyPlugin) Hooks() []Hook {
-  return []Hook{
-    {
-      Stage:    HookBefore,
-      PluginID: "my-plugin",
-      Matcher:  p.matchSpecificPaths,
-      Handler:  p.validateRequest,
-      Order:    10,
-      Async:    false,
-    },
-    {
-      Stage:   HookAfter,
-      Handler: p.logRequestAsync,  // Side-effect only
-      Order:   100,
-      Async:   true,
-    },
-  }
+func (p *MyPlugin) Hooks() []models.Hook {
+    return []models.Hook{
+        {
+            Stage:    models.HookBefore,
+            PluginID: "my_plugin",
+            Matcher:  func(rc *models.RequestContext) bool { return strings.HasPrefix(rc.Path, "/api/secure") },
+            Handler:  p.validateToken,
+            Order:    10,
+        },
+    }
 }
+```
 
-func (p *MyPlugin) matchSpecificPaths(reqCtx *RequestContext) bool {
-  // Only execute hook for specific paths
-  return strings.HasPrefix(reqCtx.Path, "/api/protected")
-}
+### RequestContext
 
-func (p *MyPlugin) validateRequest(reqCtx *RequestContext) error {
-  // Critical auth logic - must NOT be async
-  token := reqCtx.Headers.Get("Authorization")
-  if token == "" {
-    return fmt.Errorf("missing authorization token")
-  }
-  // Set user ID using the provided helper method
-  p.validateToken(token, reqCtx)
-  return nil
-}
+Available to all hooks and handlers:
 
-func (p *MyPlugin) validateToken(token string, reqCtx *RequestContext) {
-  // Validate token and extract user ID
-  userID := "validated-user-id"
-  reqCtx.SetUserIDInContext(userID)
-}
+```go
+reqCtx.Request        // *http.Request
+reqCtx.ResponseWriter // http.ResponseWriter
+reqCtx.Path           // string
+reqCtx.Method         // string
+reqCtx.Headers        // http.Header
+reqCtx.Actor          // *Actor — resolved identity
+reqCtx.ClientIP       // string
+reqCtx.Values         // map[string]any — shared key-value store
+reqCtx.Route          // *Route — matched route with metadata
+reqCtx.Handled        // bool — short-circuit flag
+```
 
-func (p *MyPlugin) logRequestAsync(reqCtx *RequestContext) error {
-  // Side-effect logging - safe to be async
-  userIDStr := ""
-  if reqCtx.UserID != nil {
-    userIDStr = *reqCtx.UserID
-  }
-  p.logger.Info("Request processed",
-    "method", reqCtx.Method,
-    "path", reqCtx.Path,
-    "client_ip", reqCtx.ClientIP,
-    "user", userIDStr,
-  )
-  return nil
-}
+Helper methods:
+
+```go
+reqCtx.SetActorInContext(actor *Actor)            // Sets actor in both RequestContext and Go context
+reqCtx.SetResponse(status int, headers http.Header, body []byte) // Override response
+reqCtx.SetJSONResponse(status int, payload any)   // Override with JSON
 ```
 
 ---
 
 ## Creating a Custom Plugin
 
-Here's a step-by-step guide to creating a custom plugin:
-
-### 1. Define the Plugin Struct
+### 1. Define the plugin
 
 ```go
 package myplugin
 
 import (
-  "context"
-  "net/http"
+    "net/http"
 
-  "github.com/Authula/authula/models"
-  "github.com/Authula/authula/services"
+    "github.com/Authula/authula/internal/util"
+    "github.com/Authula/authula/models"
+    "github.com/Authula/authula/services"
 )
 
 type MyPlugin struct {
-  config       MyPluginConfig
-  logger       models.Logger
-  ctx          *models.PluginContext
-  userService  services.UserService
+    config      MyPluginConfig
+    logger      models.Logger
+    ctx         *models.PluginContext
+    userService services.UserService
 }
 
 type MyPluginConfig struct {
-  Enabled bool   `json:"enabled" toml:"enabled"`
-  APIKey  string `json:"api_key" toml:"api_key"`
-  Timeout int    `json:"timeout" toml:"timeout"`
+    Enabled bool   `json:"enabled" toml:"enabled"`
+    SomeField  string `json:"some_field" toml:"some_field"`
 }
 ```
 
-### 2. Implement the Base Plugin Interface
+### 2. Implement the base interface
 
 ```go
 func New(config MyPluginConfig) *MyPlugin {
-  return &MyPlugin{config: config}
+    return &MyPlugin{config: config}
 }
 
 func (p *MyPlugin) Metadata() models.PluginMetadata {
-  return models.PluginMetadata{
-    ID:          "my-plugin",
-    Version:     "1.0.0",
-    Description: "Provides custom functionality for my application",
-  }
+    return models.PluginMetadata{
+        ID:          "my_plugin",
+        Version:     "1.0.0",
+        Description: "Custom functionality",
+    }
 }
 
-func (p *MyPlugin) Config() any {
-  return p.config
-}
+func (p *MyPlugin) Config() any { return p.config }
 
 func (p *MyPlugin) Init(ctx *models.PluginContext) error {
-  p.ctx = ctx
-  p.logger = ctx.Logger
+    p.ctx = ctx
+    p.logger = ctx.Logger
 
-  // Initialize services from the service registry
-  userService, ok := ctx.ServiceRegistry.Get(models.ServiceUser.String()).(services.UserService)
-  if !ok {
-    return fmt.Errorf("user service not available")
-  }
-  p.userService = userService
+    if err := util.LoadPluginConfig(ctx.GetConfig(), p.Metadata().ID, &p.config); err != nil {
+        return err
+    }
 
-  // Additional initialization logic here
-  p.logger.Info("MyPlugin initialized successfully")
-  return nil
+    userSvc, ok := ctx.ServiceRegistry.Get(models.ServiceUser.String()).(services.UserService)
+    if !ok {
+        return fmt.Errorf("user service not available")
+    }
+    p.userService = userSvc
+
+    return nil
 }
 
-func (p *MyPlugin) Close() error {
-  // Cleanup resources
-  p.logger.Info("MyPlugin closed")
-  return nil
-}
+func (p *MyPlugin) Close() error { return nil }
 ```
 
-### 3. Implement Optional Capabilities
-
-#### Add HTTP Routes (Optional)
+### 3. Add routes (optional)
 
 ```go
-func (p *MyPlugin) Routes() []Route {
-  return []Route{
-    {
-      Method:  "GET",
-      Path:    "/api/my-plugin/info",
-      Handler: http.HandlerFunc(p.handleInfo),
-    },
-  }
+func (p *MyPlugin) Routes() []models.Route {
+    return []models.Route{
+        {
+            Method:  "GET",
+            Path:    "/api/my-plugin/info",
+            Handler: http.HandlerFunc(p.handleInfo),
+        },
+    }
 }
 
 func (p *MyPlugin) handleInfo(w http.ResponseWriter, r *http.Request) {
-  util.JSONResponse(w, http.StatusOK, map[string]interface{}{
-    "plugin_id":   p.Metadata().ID,
-    "version":     p.Metadata().Version,
-    "description": p.Metadata().Description,
-  })
+    util.JSONResponse(w, http.StatusOK, map[string]string{
+        "plugin_id": p.Metadata().ID,
+    })
 }
 ```
 
-#### Add Middleware (Optional)
+### 4. Register with Authula
 
 ```go
-func (p *MyPlugin) Middleware() []func(http.Handler) http.Handler {
-  return []func(http.Handler) http.Handler{
-    p.customLoggingMiddleware,
-  }
-}
-
-func (p *MyPlugin) customLoggingMiddleware(next http.Handler) http.Handler {
-  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    startTime := time.Now()
-
-    p.logger.Info(
-      "Request started",
-      "method", r.Method,
-      "path", r.URL.Path,
-      "timestamp", startTime,
-    )
-
-    next.ServeHTTP(w, r)
-
-    duration := time.Since(startTime)
-    p.logger.Info(
-      "Request completed",
-      "method", r.Method,
-      "path", r.URL.Path,
-      "duration", duration,
-    )
-  })
-}
-```
-
-### 4. Register the Plugin
-
-To use your plugin, you need to add it to your plugins array in library mode:
-
-```go
-import (
-  "github.com/Authula/authula"
-  authulaconfig "github.com/Authula/authula/config"
-  authulamodels "github.com/Authula/authula/models"
-
-  myplugin "path/to/your/plugin"
-  myplugintypes "path/to/your/plugin/types"
-)
-
-config := authulaconfig.NewConfig(/*...*/)
+config := authulaconfig.NewConfig()
 auth := authula.New(&authula.AuthConfig{
-  Config: config,
-  Plugins: []authulamodels.Plugin{
-    myplugin.New(myplugintypes.MyPluginConfig{
-      Enabled: true,
-      APIKey:  "your-api-key",
-      Timeout: 30,
-    }),
-  },
+    Config: config,
+    Plugins: []models.Plugin{
+        myplugin.New(myplugin.MyPluginConfig{
+            SomeField: "your-value",
+        }),
+    },
 })
 ```
+
+Plugins can also be loaded automatically from a config file — see the configuration docs for details.
 
 ---
 
 ## Configuration
 
-Plugins are configured through the main configuration file. Example configuration:
+Example TOML:
 
 ```toml
 [plugins.session]
@@ -496,177 +333,123 @@ enabled = true
 
 [plugins.oauth2]
 enabled = true
-[plugins.oauth2.providers.google]
-enabled = true
-redirect_url = "http://localhost:8080/api/auth/oauth2/callback/google"
 
 [plugins.ratelimit]
 enabled = true
 window = "1m"
 max = 100
-prefix = "ratelimit:"
-provider = "redis" # Options: "memory", "redis", "database"
-# [plugins.ratelimit.custom_rules]
-# "/path/to/your/endpoint" = { disabled = false, window = "1m", max = 5, prefix = "" }
+
+[plugins.my_plugin]
+enabled = true
+some_field = "your-value"
 ```
 
 ---
 
 ## Best Practices
 
-1. **Always implement proper error handling** in the `Init` method
-2. **Clean up resources** in the `Close` method
-3. **Use the provided logger** for logging instead of external loggers
-4. **Validate configuration** during initialization
-5. **Follow naming conventions** for plugin IDs (lowercase with underscores)
-6. **Provide meaningful metadata** for your plugins
-7. **Use async hooks** for side-effect operations that shouldn't block responses
-8. **Consider security implications** when implementing authentication methods
-9. **Test your plugin** thoroughly, especially edge cases and error conditions
-10. **Document your plugin's configuration** options and behavior
+1. Validate config in `Init` — return an error if invalid
+2. Clean up resources in `Close`
+3. Use the provided logger, not external ones
+4. Use `Async: true` only for side-effects (logging, analytics, events)
+5. Never make auth validation, CSRF, or rate-limiting hooks async
+6. Plugin IDs should be lowercase with underscores
+7. Use `reqCtx.SetActorInContext()` to set the authenticated actor
+8. Use `util.JSONResponse()` for consistent API responses
 
 ---
 
-## Example: Complete Request Logging Plugin
-
-Here's a complete example of a plugin that logs incoming requests with timing and detailed information:
+## Complete Example: Request Logger Plugin
 
 ```go
 package logger
 
 import (
-  "fmt"
-  "net/http"
-  "strings"
-  "time"
+    "fmt"
+    "time"
 
-  "github.com/Authula/authula/models"
+    "github.com/Authula/authula/models"
 )
 
 type LoggerPlugin struct {
-  config LoggerPluginConfig
-  logger models.Logger
-  ctx    *models.PluginContext
+    config LoggerPluginConfig
+    logger models.Logger
+    ctx    *models.PluginContext
 }
 
 type LoggerPluginConfig struct {
-  Enabled     bool   `json:"enabled" toml:"enabled"`
-  LogRequests bool   `json:"log_requests" toml:"log_requests"`
-  LogLevel    string `json:"log_level" toml:"log_level"` // "debug", "info"
+    Enabled     bool   `json:"enabled" toml:"enabled"`
+    LogRequests bool   `json:"log_requests" toml:"log_requests"`
+    LogLevel    string `json:"log_level" toml:"log_level"`
 }
 
 func New(config LoggerPluginConfig) *LoggerPlugin {
-  return &LoggerPlugin{config: config}
+    return &LoggerPlugin{config: config}
 }
 
 func (p *LoggerPlugin) Metadata() models.PluginMetadata {
-  return models.PluginMetadata{
-    ID:          "logger",
-    Version:     "1.0.0",
-    Description: "Logs incoming requests with timing and detailed information",
-  }
+    return models.PluginMetadata{
+        ID:          "logger",
+        Version:     "1.0.0",
+        Description: "Logs incoming requests with timing",
+    }
 }
 
-func (p *LoggerPlugin) Config() any {
-  return p.config
-}
+func (p *LoggerPlugin) Config() any { return p.config }
 
 func (p *LoggerPlugin) Init(ctx *models.PluginContext) error {
-  p.ctx = ctx
-  p.logger = ctx.Logger
-
-  if p.config.LogRequests {
-    p.logger.Info("Request logging enabled", "level", p.config.LogLevel)
-  }
-
-  return nil
+    p.ctx = ctx
+    p.logger = ctx.Logger
+    return nil
 }
+
+func (p *LoggerPlugin) Close() error { return nil }
 
 func (p *LoggerPlugin) Hooks() []models.Hook {
-  return []models.Hook{
-    // Log the start of each request
-    {
-      Stage: models.HookOnRequest,
-      Matcher: func(reqCtx *models.RequestContext) bool {
-        return p.config.LogRequests
-      },
-      Handler: p.logRequestStart,
-      Order:   10,
-      Async:   false, // Must be sync to capture start time
-    },
-    // Log after request handling (side-effect logging)
-    {
-      Stage: models.HookAfter,
-      Matcher: func(reqCtx *models.RequestContext) bool {
-        return p.config.LogRequests
-      },
-      Handler: p.logRequestMetrics,
-      Order:   20,
-      Async:   true, // Safe as async - side-effect only
-    },
-  }
+    return []models.Hook{
+        {
+            Stage:   models.HookOnRequest,
+            Matcher: func(rc *models.RequestContext) bool { return p.config.LogRequests },
+            Handler: p.logStart,
+            Order:   10,
+        },
+        {
+            Stage:   models.HookAfter,
+            Matcher: func(rc *models.RequestContext) bool { return p.config.LogRequests },
+            Handler: p.logComplete,
+            Order:   20,
+            Async:   true,
+        },
+    }
 }
 
-func (p *LoggerPlugin) logRequestStart(reqCtx *models.RequestContext) error {
-  startTime := time.Now()
-  reqCtx.Values["start_time"] = startTime
-
-  if p.config.LogLevel == "debug" {
-    p.logger.Debug(fmt.Sprintf(
-      "Request started: %s %s from %s",
-      reqCtx.Method,
-      reqCtx.Path,
-      reqCtx.ClientIP,
-    ))
-  }
-  return nil
+func (p *LoggerPlugin) logStart(rc *models.RequestContext) error {
+    rc.Values["start_time"] = time.Now()
+    if p.config.LogLevel == "debug" {
+        p.logger.Debug(fmt.Sprintf("→ %s %s from %s", rc.Method, rc.Path, rc.ClientIP))
+    }
+    return nil
 }
 
-func (p *LoggerPlugin) logRequestMetrics(reqCtx *models.RequestContext) error {
-  startTime, ok := reqCtx.Values["start_time"].(time.Time)
-  if !ok {
-    return nil // No start time recorded
-  }
-
-  duration := time.Since(startTime)
-  statusCode := reqCtx.ResponseStatus
-  userIDStr := ""
-  if reqCtx.UserID != nil {
-    userIDStr = *reqCtx.UserID
-  }
-
-  logMsg := fmt.Sprintf(
-    "Request completed: %s %s -> %d in %v",
-    reqCtx.Method,
-    reqCtx.Path,
-    statusCode,
-    duration,
-  )
-
-  if userIDStr != "" {
-    logMsg += fmt.Sprintf(" (User: %s)", userIDStr)
-  }
-
-  // Log errors with Error level, others with Info
-  if statusCode >= 400 {
-    p.logger.Error(logMsg)
-  } else {
-    p.logger.Info(logMsg)
-  }
-
-  return nil
-}
-
-func (p *LoggerPlugin) Close() error {
-  p.logger.Info("Request logger plugin shutting down")
-  return nil
+func (p *LoggerPlugin) logComplete(rc *models.RequestContext) error {
+    start, ok := rc.Values["start_time"].(time.Time)
+    if !ok {
+        return nil
+    }
+    userID := ""
+    if rc.Actor != nil && rc.Actor.Type == models.ActorUser {
+        userID = rc.Actor.ID
+    }
+    elapsed := time.Since(start)
+    msg := fmt.Sprintf("← %s %s → %d (%v)", rc.Method, rc.Path, rc.ResponseStatus, elapsed)
+    if userID != "" {
+        msg += fmt.Sprintf(" user=%s", userID)
+    }
+    if rc.ResponseStatus >= 400 {
+        p.logger.Error(msg)
+    } else {
+        p.logger.Info(msg)
+    }
+    return nil
 }
 ```
-
-**Key points from this example:**
-
-1. The `logRequestStart` hook is **synchronous** (`Async: false`) because it needs to capture the start time before any other processing
-2. The `logRequestMetrics` hook is **asynchronous** (`Async: true`) because it's a side-effect (logging) that shouldn't hold up the response
-3. Both hooks use matchers to conditionally execute based on configuration
-4. Errors are logged at the appropriate level based on HTTP status code
-5. The plugin gracefully handles missing start time in the metrics hook
