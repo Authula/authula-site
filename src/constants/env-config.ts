@@ -3,4 +3,5 @@ export const ENV_CONFIG = {
     websiteId: process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID as string,
   },
   sponsorUsLink: process.env.NEXT_PUBLIC_SPONSOR_US_LINK as string,
+  productHuntLink: process.env.NEXT_PUBLIC_PRODUCT_HUNT_LINK as string,
 };
