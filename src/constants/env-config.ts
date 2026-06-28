@@ -8,6 +8,9 @@ export const ENV_CONFIG = {
     url: process.env.UPSTASH_REDIS_REST_URL as string,
     token: process.env.UPSTASH_REDIS_REST_TOKEN as string,
   },
+  discord: {
+    webhookUrl: process.env.DISCORD_WEBHOOK_URL as string,
+  },
   umami: {
     websiteId: process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID as string,
   },
