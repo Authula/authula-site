@@ -12,19 +12,15 @@ const validateDataSchema = z.object({
   email: z.email(),
 });
 
-export type SubscribeResult =
-  | { success: true; message: string }
-  | { success: false; error: string };
+export type SubscribeResult = { success: boolean; message: string };
 
-export async function subscribeToMailingList(
-  email: string,
-): Promise<SubscribeResult> {
+export async function joinWaitlist(email: string): Promise<SubscribeResult> {
   try {
     const validationResult = validateDataSchema.safeParse({
       email,
     });
     if (!validationResult.success) {
-      return { success: false, error: validationResult.error.message };
+      return { success: false, message: validationResult.error.message };
     }
 
     const headersList = await headers();
@@ -37,7 +33,7 @@ export async function subscribeToMailingList(
     if (!success) {
       return {
         success: false,
-        error: "Too many requests. Please try again later.",
+        message: "Too many requests. Please try again later.",
       };
     }
 
@@ -57,7 +53,7 @@ export async function subscribeToMailingList(
     console.error("Failed to subscribe to mailing list:", error);
     return {
       success: false,
-      error: "Something went wrong. Please try again later.",
+      message: "Something went wrong. Please try again later.",
     };
   }
 }

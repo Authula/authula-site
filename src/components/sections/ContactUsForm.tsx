@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { contactUs } from "@/app/actions/contact-us.action";
+import { contactUs } from "@/app/actions";
 
 export default function ContactUsForm() {
   const form = useForm({
@@ -20,7 +20,7 @@ export default function ContactUsForm() {
       const result = await contactUs(value.email, value.message);
       if (!result.success) {
         toast.error("Error", {
-          description: result.error,
+          description: result.message,
         });
         return;
       }

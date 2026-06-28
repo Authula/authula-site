@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import BorderIndicators from "@/components/shared/BorderIndicators";
-import { subscribeToMailingList } from "@/app/actions";
+import { joinWaitlist } from "@/app/actions";
 
 export default function WaitlistSection() {
   const [email, setEmail] = useState<string>("");
@@ -25,11 +25,11 @@ export default function WaitlistSection() {
 
     setStatus("loading");
 
-    const result = await subscribeToMailingList(email);
+    const result = await joinWaitlist(email);
     if (!result.success) {
       setStatus("error");
       toast.error("Error", {
-        description: result.error,
+        description: result.message,
       });
       return;
     }

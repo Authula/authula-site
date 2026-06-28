@@ -1,2 +1,2 @@
-export { subscribeToMailingList } from "./subscribe-to-mailing-list.action";
-export type { SubscribeResult } from "./subscribe-to-mailing-list.action";
+export * from "./join-waitlist.action";
+export * from "./contact-us.action";

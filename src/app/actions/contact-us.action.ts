@@ -13,9 +13,7 @@ const validateDataSchema = z.object({
   message: z.string().nonempty(),
 });
 
-export type ContactUsResult =
-  | { success: true; message: string }
-  | { success: false; error: string };
+export type ContactUsResult = { success: boolean; message: string };
 
 export async function contactUs(
   email: string,
@@ -27,7 +25,7 @@ export async function contactUs(
       message,
     });
     if (!validationResult.success) {
-      return { success: false, error: validationResult.error.message };
+      return { success: false, message: validationResult.error.message };
     }
 
     const headersList = await headers();
@@ -40,7 +38,7 @@ export async function contactUs(
     if (!success) {
       return {
         success: false,
-        error: "Too many requests. Please try again later.",
+        message: "Too many requests. Please try again later.",
       };
     }
 
@@ -62,7 +60,7 @@ export async function contactUs(
     console.error("Failed to subscribe to mailing list:", error);
     return {
       success: false,
-      error: "Something went wrong. Please try again later.",
+      message: "Something went wrong. Please try again later.",
     };
   }
 }
