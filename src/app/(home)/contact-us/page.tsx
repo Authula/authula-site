@@ -5,8 +5,9 @@ import ContactUsForm from "@/components/sections/ContactUsForm";
 import GitHubIcon from "@/components/shared/icons/GitHubIcon";
 import { CONSTANTS } from "@/constants/constants";
 import { ENV_CONFIG } from "@/constants/env-config";
+import DiscordIcon from "@/components/shared/icons/DiscordIcon";
 
-export default function ContactPage() {
+export default function ContactUsPage() {
   return (
     <main className="flex flex-col flex-1">
       <section className="relative flex-1 border-b border-dashed border-sky-950 bg-blue-500/5">
@@ -63,7 +64,7 @@ export default function ContactPage() {
                       target="_blank"
                       className="flex items-center gap-3 text-sm hover:text-blue-500 transition-colors"
                     >
-                      <MessageCircle className="h-4 w-4 text-blue-500 shrink-0" />
+                      <DiscordIcon className="h-4 w-4 text-blue-500 shrink-0" />
                       Discord Community
                     </Link>
                     <Link

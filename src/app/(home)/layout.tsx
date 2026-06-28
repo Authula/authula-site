@@ -12,8 +12,8 @@ export default function Layout({ children }: LayoutProps<"/">) {
           url: "/docs",
         },
         {
-          text: "Contact",
-          url: "/contact",
+          text: "Contact Us",
+          url: "/contact-us",
         },
       ]}
     >
