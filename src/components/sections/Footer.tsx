@@ -31,8 +31,8 @@ const linkItems: LinkItem[] = [
     icon: <BookOpen className="w-4 h-4" />,
   },
   {
-    href: "/contact",
-    label: "Contact",
+    href: "/contact-us",
+    label: "Contact Us",
     icon: <Mail className="w-4 h-4" />,
   },
 ];
