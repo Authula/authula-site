@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Script from "next/script";
 
 import { RootProvider } from "fumadocs-ui/provider/next";
+import { Toaster } from "sonner";
 
-import "./global.css";
 import { ENV_CONFIG } from "@/constants/env-config";
 import { primaryFont } from "@/constants/fonts";
-import { Toaster } from "sonner";
+import "./global.css";
 
 export const metadata: Metadata = {
   title: "Authula",
