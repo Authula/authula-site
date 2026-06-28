@@ -1,12 +1,10 @@
-import Link from "next/link";
+import { BookOpen, Mail } from "lucide-react";
 import Image from "next/image";
-
-import { BookOpen } from "lucide-react";
-
+import Link from "next/link";
+import BorderIndicators from "@/components/shared/BorderIndicators";
 import GitHubIcon from "@/components/shared/icons/GitHubIcon";
 import { CONSTANTS } from "@/constants/constants";
 import DiscordIcon from "../shared/icons/DiscordIcon";
-import BorderIndicators from "@/components/shared/BorderIndicators";
 
 type LinkItem = {
   href: string;
@@ -32,6 +30,11 @@ const linkItems: LinkItem[] = [
     label: "Docs",
     icon: <BookOpen className="w-4 h-4" />,
   },
+  {
+    href: "/contact",
+    label: "Contact",
+    icon: <Mail className="w-4 h-4" />,
+  },
 ];
 
 export default function Footer() {
@@ -53,7 +56,7 @@ export default function Footer() {
               <Link
                 key={link.label}
                 href={link.href}
-                target="_blank"
+                target={link.externalLink ? "_blank" : undefined}
                 className="flex items-center gap-2 text-sm hover:text-white transition-colors"
               >
                 {link.icon}

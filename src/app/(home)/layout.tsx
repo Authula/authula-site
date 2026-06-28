@@ -11,6 +11,10 @@ export default function Layout({ children }: LayoutProps<"/">) {
           text: "Docs",
           url: "/docs",
         },
+        {
+          text: "Contact",
+          url: "/contact",
+        },
       ]}
     >
       {children}

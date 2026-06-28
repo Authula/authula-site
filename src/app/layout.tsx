@@ -6,6 +6,7 @@ import { RootProvider } from "fumadocs-ui/provider/next";
 import "./global.css";
 import { ENV_CONFIG } from "@/constants/env-config";
 import { primaryFont } from "@/constants/fonts";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Authula",
@@ -26,6 +27,7 @@ export default function Layout({ children }: LayoutProps<"/">) {
           }}
         >
           {children}
+          <Toaster />
         </RootProvider>
       </body>
       <Script

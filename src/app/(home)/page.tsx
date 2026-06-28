@@ -1,14 +1,16 @@
-import Footer from "@/components/sections/Footer";
-import HeroSection from "@/components/sections/HeroSection";
 import ArchitectureSection from "@/components/sections/ArchitectureSection";
-import ConfigurationSection from "@/components/sections/ConfigurationSection";
-import FeaturesSection from "@/components/sections/FeaturesSection";
+import CommunitySection from "@/components/sections/CommunitySection";
 import ComparisonSection from "@/components/sections/ComparisonSection";
+import ConfigurationSection from "@/components/sections/ConfigurationSection";
+import ContactSection from "@/components/sections/ContactSection";
+import DeveloperExperienceSection from "@/components/sections/DeveloperExperienceSection";
+import FeaturesSection from "@/components/sections/FeaturesSection";
+import Footer from "@/components/sections/Footer";
+import WaitlistSection from "@/components/sections/WaitlistSection";
+import HeroSection from "@/components/sections/HeroSection";
 import HooksSection from "@/components/sections/HooksSection";
 import PluginSection from "@/components/sections/PluginSection";
-import DeveloperExperienceSection from "@/components/sections/DeveloperExperienceSection";
 import SponsorsSection from "@/components/sections/SponsorsSection";
-import CommunitySection from "@/components/sections/CommunitySection";
 import AnnouncementBanner from "@/components/shared/AnnouncementBanner";
 
 export default function HomePage() {
@@ -25,6 +27,8 @@ export default function HomePage() {
       <DeveloperExperienceSection />
       <SponsorsSection />
       <CommunitySection />
+      <WaitlistSection />
+      <ContactSection />
       <Footer />
     </main>
   );
