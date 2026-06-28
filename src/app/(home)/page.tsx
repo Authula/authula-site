@@ -2,7 +2,7 @@ import ArchitectureSection from "@/components/sections/ArchitectureSection";
 import CommunitySection from "@/components/sections/CommunitySection";
 import ComparisonSection from "@/components/sections/ComparisonSection";
 import ConfigurationSection from "@/components/sections/ConfigurationSection";
-import ContactSection from "@/components/sections/ContactSection";
+import ContactUsSection from "@/components/sections/ContactUsSection";
 import DeveloperExperienceSection from "@/components/sections/DeveloperExperienceSection";
 import FeaturesSection from "@/components/sections/FeaturesSection";
 import Footer from "@/components/sections/Footer";
@@ -28,7 +28,7 @@ export default function HomePage() {
       <SponsorsSection />
       <CommunitySection />
       <WaitlistSection />
-      <ContactSection />
+      <ContactUsSection />
       <Footer />
     </main>
   );

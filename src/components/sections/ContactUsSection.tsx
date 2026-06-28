@@ -1,7 +1,7 @@
 import ContactUsForm from "@/components/sections/ContactUsForm";
 import BorderIndicators from "@/components/shared/BorderIndicators";
 
-export default function ContactSection() {
+export default function ContactUsSection() {
   return (
     <section className="relative border-b border-dashed bg-blue-500/5">
       <div className="absolute inset-0 -z-10 h-full w-full bg-[radial-gradient(#3b82f6_1px,transparent_1px)] bg-size-[16px_16px] mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-[0.15]" />
@@ -13,7 +13,7 @@ export default function ContactSection() {
           <div className="mb-8 flex items-center gap-3">
             <div>
               <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-                Have a question?
+                Contact Us
               </h2>
               <p className="text-muted-foreground mt-1">
                 Drop us an email and we&apos;ll get back to you.
