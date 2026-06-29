@@ -99,14 +99,16 @@ export async function POST(request: Request) {
       }
       default: {
         return Response.json(
-          { success: false, message: "Encountered unknown Resend email " },
+          {
+            success: false,
+            message: "Encountered unknown Resend webhook payload type.",
+          },
           { status: 500 },
         );
       }
     }
 
     const discordMessage = `**Resend Event:** \`${eventType}\`\n**Email:** ${email}`;
-
     await fetch(ENV_CONFIG.discord.webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -117,10 +119,13 @@ export async function POST(request: Request) {
       success: true,
       message: "Successfully processed webhook.",
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Secure webhook route error:", error);
     return Response.json(
-      { success: false, message: "Internal server error" },
+      {
+        success: false,
+        message: error.message ?? "Internal server error",
+      },
       { status: 500 },
     );
   }
