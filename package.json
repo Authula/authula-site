@@ -20,6 +20,7 @@
     "@upstash/redis": "^1.38.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "es-toolkit": "^1.49.0",
     "fumadocs-core": "^16.10.6",
     "fumadocs-mdx": "^15.0.13",
     "fumadocs-ui": "^16.10.6",

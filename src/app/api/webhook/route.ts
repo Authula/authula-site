@@ -1,14 +1,44 @@
 import { z } from "zod";
+import { toCamelCaseKeys } from "es-toolkit";
 
 import { resend } from "@/lib/resend";
 import { ENV_CONFIG } from "@/constants/env-config";
 
-const resendWebhookSchema = z.object({
-  type: z.string(),
-  data: z.object({
-    email: z.string().email(),
-  }),
+const contactCreatedData = z.object({
+  id: z.uuid(),
+  email: z.email(),
+  firstName: z.string().nullable(),
+  lastName: z.string().nullable(),
+  unsubscribed: z.boolean(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 });
+
+const emailDeliveredData = z.object({
+  emailId: z.string().nonempty(),
+  messageId: z.string().nonempty(),
+  subject: z.string().nonempty(),
+  from: z.string().nonempty(),
+  to: z.string().array(),
+  headers: z
+    .object({
+      name: z.string().nonempty(),
+      value: z.string().nonempty(),
+    })
+    .array(),
+  createdAt: z.iso.datetime(),
+});
+
+const resendWebhookSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("contact.created"),
+    data: contactCreatedData,
+  }),
+  z.object({
+    type: z.literal("email.delivered"),
+    data: emailDeliveredData,
+  }),
+]);
 
 export async function POST(request: Request) {
   try {
@@ -39,16 +69,43 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = resendWebhookSchema.safeParse(verifiedPayload);
-    if (!result.success) {
+    const validationResult = resendWebhookSchema.safeParse(
+      toCamelCaseKeys(verifiedPayload),
+    );
+    if (!validationResult.success) {
       return Response.json(
-        { success: false, message: "Invalid payload structure" },
+        { success: false, message: validationResult.error.message },
         { status: 400 },
       );
     }
 
-    const { type: eventType, data } = result.data;
-    const discordMessage = `**Resend Event:** \`${eventType}\`\n**Email:** ${data.email}`;
+    const { type: eventType, data } = validationResult.data;
+
+    let email = "";
+
+    switch (eventType) {
+      case "contact.created": {
+        email = data.email;
+        break;
+      }
+      case "email.delivered": {
+        const foundReplyToHeader = data.headers.find(
+          (header) => header.name.toLowerCase() === "reply-to",
+        );
+        if (foundReplyToHeader?.value) {
+          email = foundReplyToHeader.value;
+        }
+        break;
+      }
+      default: {
+        return Response.json(
+          { success: false, message: "Encountered unknown Resend email " },
+          { status: 500 },
+        );
+      }
+    }
+
+    const discordMessage = `**Resend Event:** \`${eventType}\`\n**Email:** ${email}`;
 
     await fetch(ENV_CONFIG.discord.webhookUrl, {
       method: "POST",
