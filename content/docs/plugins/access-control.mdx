@@ -43,46 +43,48 @@ accesscontrolplugin.New(accesscontrolplugintypes.AccessControlPluginConfig{
 
 ## API Reference
 
+Each endpoint in this plugin requires the caller to have a specific hardcoded permission assigned to their role(s).
+
 ### Roles Management
 
-| HTTP Method | Route Path                                  | Description              |
-| ----------- | ------------------------------------------- | ------------------------ |
-| `POST`      | `/access-control/roles`                     | Create a new role        |
-| `GET`       | `/access-control/roles`                     | List all available roles |
-| `GET`       | `/access-control/roles/by-name/{role_name}` | Get a role by name       |
-| `GET`       | `/access-control/roles/{role_id}`           | Get a role by ID         |
-| `PATCH`     | `/access-control/roles/{role_id}`           | Update a role            |
-| `DELETE`    | `/access-control/roles/{role_id}`           | Delete a role            |
+| HTTP Method | Route Path                                  | Description              | Required Permission           |
+| ----------- | ------------------------------------------- | ------------------------ | ----------------------------- |
+| `POST`      | `/access-control/roles`                     | Create a new role        | `access-control:roles:create` |
+| `GET`       | `/access-control/roles`                     | List all available roles | `access-control:roles:list`   |
+| `GET`       | `/access-control/roles/by-name/{role_name}` | Get a role by name       | `access-control:roles:read`   |
+| `GET`       | `/access-control/roles/{role_id}`           | Get a role by ID         | `access-control:roles:read`   |
+| `PATCH`     | `/access-control/roles/{role_id}`           | Update a role            | `access-control:roles:update` |
+| `DELETE`    | `/access-control/roles/{role_id}`           | Delete a role            | `access-control:roles:delete` |
 
 ### Permissions Management
 
-| HTTP Method | Route Path                                    | Description             |
-| ----------- | --------------------------------------------- | ----------------------- |
-| `POST`      | `/access-control/permissions`                 | Create a new permission |
-| `GET`       | `/access-control/permissions`                 | List all permissions    |
-| `GET`       | `/access-control/permissions/{permission_id}` | Get a permission by ID  |
-| `PATCH`     | `/access-control/permissions/{permission_id}` | Update a permission     |
-| `DELETE`    | `/access-control/permissions/{permission_id}` | Delete a permission     |
+| HTTP Method | Route Path                                    | Description             | Required Permission                 |
+| ----------- | --------------------------------------------- | ----------------------- | ----------------------------------- |
+| `POST`      | `/access-control/permissions`                 | Create a new permission | `access-control:permissions:create` |
+| `GET`       | `/access-control/permissions`                 | List all permissions    | `access-control:permissions:list`   |
+| `GET`       | `/access-control/permissions/{permission_id}` | Get a permission by ID  | `access-control:permissions:read`   |
+| `PATCH`     | `/access-control/permissions/{permission_id}` | Update a permission     | `access-control:permissions:update` |
+| `DELETE`    | `/access-control/permissions/{permission_id}` | Delete a permission     | `access-control:permissions:delete` |
 
 ### Role-Permission Mapping
 
-| HTTP Method | Route Path                                                    | Description                                     |
-| ----------- | ------------------------------------------------------------- | ----------------------------------------------- |
-| `POST`      | `/access-control/roles/{role_id}/permissions`                 | Add a single permission to a role               |
-| `GET`       | `/access-control/roles/{role_id}/permissions`                 | Get all permissions assigned to a role          |
-| `PUT`       | `/access-control/roles/{role_id}/permissions`                 | Replace all permissions of a role (bulk update) |
-| `DELETE`    | `/access-control/roles/{role_id}/permissions/{permission_id}` | Remove a permission from a role                 |
+| HTTP Method | Route Path                                                    | Description                                     | Required Permission                      |
+| ----------- | ------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------- |
+| `POST`      | `/access-control/roles/{role_id}/permissions`                 | Add a single permission to a role               | `access-control:role-permissions:assign` |
+| `GET`       | `/access-control/roles/{role_id}/permissions`                 | Get all permissions assigned to a role          | `access-control:role-permissions:read`   |
+| `PUT`       | `/access-control/roles/{role_id}/permissions`                 | Replace all permissions of a role (bulk update) | `access-control:role-permissions:assign` |
+| `DELETE`    | `/access-control/roles/{role_id}/permissions/{permission_id}` | Remove a permission from a role                 | `access-control:role-permissions:remove` |
 
 ### User Access & Permissions
 
-| HTTP Method | Route Path                                          | Description                               |
-| ----------- | --------------------------------------------------- | ----------------------------------------- |
-| `GET`       | `/access-control/users/{user_id}/roles`             | Get all roles assigned to a user          |
-| `POST`      | `/access-control/users/{user_id}/roles`             | Assign a role to a user                   |
-| `PUT`       | `/access-control/users/{user_id}/roles`             | Replace all roles of a user (bulk update) |
-| `DELETE`    | `/access-control/users/{user_id}/roles/{role_id}`   | Remove a role from a user                 |
-| `GET`       | `/access-control/users/{user_id}/permissions`       | Get all permissions for a user            |
-| `POST`      | `/access-control/users/{user_id}/permissions/check` | Check whether a user has permissions      |
+| HTTP Method | Route Path                                          | Description                               | Required Permission                     |
+| ----------- | --------------------------------------------------- | ----------------------------------------- | --------------------------------------- |
+| `GET`       | `/access-control/users/{user_id}/roles`             | Get all roles assigned to a user          | `access-control:user-roles:read`        |
+| `POST`      | `/access-control/users/{user_id}/roles`             | Assign a role to a user                   | `access-control:user-roles:assign`      |
+| `PUT`       | `/access-control/users/{user_id}/roles`             | Replace all roles of a user (bulk update) | `access-control:user-roles:assign`      |
+| `DELETE`    | `/access-control/users/{user_id}/roles/{role_id}`   | Remove a role from a user                 | `access-control:user-roles:remove`      |
+| `GET`       | `/access-control/users/{user_id}/permissions`       | Get all permissions for a user            | `access-control:user-permissions:read`  |
+| `POST`      | `/access-control/users/{user_id}/permissions/check` | Check whether a user has permissions      | `access-control:user-permissions:check` |
 
 ---
 
@@ -138,20 +140,18 @@ Migrations are automatically handled when the plugin is initialized.
 
 ## Plugin Capabilities
 
-- `access_control.enforce`: Enforce access control on an API endpoint
-
 #### Example Usage
 
 `Standalone mode`:
 
 ```toml
 [[route_mappings]]
-path = "/admin/users"
+path = "/some/path"
 method = "GET"
 # Make sure to include an auth capability plugin (e.g. session.auth) before the access control plugin
 # to ensure the user is authenticated before enforcing permissions.
-plugins = ["session.auth", "access_control.enforce"]
-permissions = ["users.read"] # Specify the required permission to access this route
+plugins = ["session.auth"]
+permissions = ["domain:resource:action"] # Specify the required custom permission to access this route
 ```
 
 `Library mode`:
@@ -169,13 +169,12 @@ config := authulaconfig.NewConfig(
   authulaconfig.WithRouteMappings([]authulamodels.RouteMapping{
     {
       Method: "GET",
-      Path:   "/admin/users",
+      Path:   "/some/path",
       Plugins: []string{
         sessionplugin.HookIDSessionAuth.String(),
-        accesscontrolplugin.HookIDAccessControlEnforce.String(),
       },
       Permissions: []string{
-        "users.read",
+        "domain:resource:action",
       },
     },
   }),
