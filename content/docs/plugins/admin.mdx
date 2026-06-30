@@ -46,58 +46,60 @@ adminplugin.New(adminplugintypes.AdminPluginConfig{
 
 ## API Reference
 
+Each endpoint in this plugin requires the caller to have a specific hardcoded permission assigned to their role(s).
+
 ### User Management
 
-| Method   | Endpoint                 | Description                                 |
-| -------- | ------------------------ | ------------------------------------------- |
-| `POST`   | `/admin/users`           | Create a new user                           |
-| `GET`    | `/admin/users`           | List all users with cursor-based pagination |
-| `GET`    | `/admin/users/{user_id}` | Get a specific user by ID                   |
-| `PATCH`  | `/admin/users/{user_id}` | Update user details                         |
-| `DELETE` | `/admin/users/{user_id}` | Delete a user                               |
+| Method   | Endpoint                 | Description                                 | Required Permission      |
+| -------- | ------------------------ | ------------------------------------------- | ------------------------ |
+| `POST`   | `/admin/users`           | Create a new user                           | `admin:users:create`     |
+| `GET`    | `/admin/users`           | List all users with cursor-based pagination | `admin:users:list`       |
+| `GET`    | `/admin/users/{user_id}` | Get a specific user by ID                   | `admin:users:read`       |
+| `PATCH`  | `/admin/users/{user_id}` | Update user details                         | `admin:users:update`     |
+| `DELETE` | `/admin/users/{user_id}` | Delete a user                               | `admin:users:delete`     |
 
 ### Account Management
 
-| Method   | Endpoint                          | Description                                       |
-| -------- | --------------------------------- | ------------------------------------------------- |
-| `POST`   | `/admin/users/{user_id}/accounts` | Create a linked provider account for a user       |
-| `GET`    | `/admin/users/{user_id}/accounts` | List all accounts associated with a user          |
-| `GET`    | `/admin/accounts/{id}`            | Get a specific account by ID                      |
-| `PATCH`  | `/admin/accounts/{id}`            | Update account details                            |
-| `DELETE` | `/admin/accounts/{id}`            | Delete a user account and remove provider linkage |
+| Method   | Endpoint                          | Description                                       | Required Permission          |
+| -------- | --------------------------------- | ------------------------------------------------- | ---------------------------- |
+| `POST`   | `/admin/users/{user_id}/accounts` | Create a linked provider account for a user       | `admin:accounts:create`      |
+| `GET`    | `/admin/users/{user_id}/accounts` | List all accounts associated with a user          | `admin:accounts:list`        |
+| `GET`    | `/admin/accounts/{id}`            | Get a specific account by ID                      | `admin:accounts:read`        |
+| `PATCH`  | `/admin/accounts/{id}`            | Update account details                            | `admin:accounts:update`      |
+| `DELETE` | `/admin/accounts/{id}`            | Delete a user account and remove provider linkage | `admin:accounts:delete`      |
 
 ### User State Management
 
-| Method   | Endpoint                       | Description                                            |
-| -------- | ------------------------------ | ------------------------------------------------------ |
-| `GET`    | `/admin/users/{user_id}/state` | Get user state including banned status and ban details |
-| `POST`   | `/admin/users/{user_id}/state` | Create user state record                               |
-| `PATCH`  | `/admin/users/{user_id}/state` | Update user state                                      |
-| `DELETE` | `/admin/users/{user_id}/state` | Delete user state record                               |
-| `GET`    | `/admin/users/states/banned`   | List all banned users                                  |
-| `POST`   | `/admin/users/{user_id}/ban`   | Ban a user with optional expiration and reason         |
-| `POST`   | `/admin/users/{user_id}/unban` | Remove ban from a user                                 |
+| Method   | Endpoint                       | Description                                            | Required Permission                 |
+| -------- | ------------------------------ | ------------------------------------------------------ | ----------------------------------- |
+| `GET`    | `/admin/users/{user_id}/state` | Get user state including banned status and ban details | `admin:user-state:read`             |
+| `POST`   | `/admin/users/{user_id}/state` | Create user state record                               | `admin:user-state:create`           |
+| `PATCH`  | `/admin/users/{user_id}/state` | Update user state                                      | `admin:user-state:update`           |
+| `DELETE` | `/admin/users/{user_id}/state` | Delete user state record                               | `admin:user-state:delete`           |
+| `GET`    | `/admin/users/states/banned`   | List all banned users                                  | `admin:user-state:list-banned`      |
+| `POST`   | `/admin/users/{user_id}/ban`   | Ban a user with optional expiration and reason         | `admin:user-state:ban`              |
+| `POST`   | `/admin/users/{user_id}/unban` | Remove ban from a user                                 | `admin:user-state:unban`            |
 
 ### Session State Management
 
-| Method   | Endpoint                              | Description                                     |
-| -------- | ------------------------------------- | ----------------------------------------------- |
-| `GET`    | `/admin/sessions/{session_id}/state`  | Get session state including revocation status   |
-| `POST`   | `/admin/sessions/{session_id}/state`  | Create session state record                     |
-| `PATCH`  | `/admin/sessions/{session_id}/state`  | Update session state                            |
-| `DELETE` | `/admin/sessions/{session_id}/state`  | Delete session state record                     |
-| `POST`   | `/admin/sessions/{session_id}/revoke` | Revoke a session with optional reason           |
-| `GET`    | `/admin/sessions/states/revoked`      | List all revoked sessions with session state    |
-| `GET`    | `/admin/users/{user_id}/sessions`     | List all sessions with session state for a user |
+| Method   | Endpoint                              | Description                                     | Required Permission                    |
+| -------- | ------------------------------------- | ----------------------------------------------- | -------------------------------------- |
+| `GET`    | `/admin/sessions/{session_id}/state`  | Get session state including revocation status   | `admin:session-state:read`             |
+| `POST`   | `/admin/sessions/{session_id}/state`  | Create session state record                     | `admin:session-state:create`           |
+| `PATCH`  | `/admin/sessions/{session_id}/state`  | Update session state                            | `admin:session-state:update`           |
+| `DELETE` | `/admin/sessions/{session_id}/state`  | Delete session state record                     | `admin:session-state:delete`           |
+| `POST`   | `/admin/sessions/{session_id}/revoke` | Revoke a session with optional reason           | `admin:session-state:revoke`           |
+| `GET`    | `/admin/sessions/states/revoked`      | List all revoked sessions with session state    | `admin:session-state:list-revoked`     |
+| `GET`    | `/admin/users/{user_id}/sessions`     | List all sessions with session state for a user | `admin:user-state:list-sessions`       |
 
 ### Impersonation Management
 
-| Method | Endpoint                                        | Description                                          |
-| ------ | ----------------------------------------------- | ---------------------------------------------------- |
-| `GET`  | `/admin/impersonations`                         | List all active impersonations                       |
-| `GET`  | `/admin/impersonations/{impersonation_id}`      | Get a specific impersonation by ID                   |
-| `POST` | `/admin/impersonations`                         | Start impersonating a user with audit trail          |
-| `POST` | `/admin/impersonations/{impersonation_id}/stop` | End impersonation and restore original admin session |
+| Method | Endpoint                                        | Description                                          | Required Permission              |
+| ------ | ----------------------------------------------- | ---------------------------------------------------- | -------------------------------- |
+| `GET`  | `/admin/impersonations`                         | List all active impersonations                       | `admin:impersonations:list`      |
+| `GET`  | `/admin/impersonations/{impersonation_id}`      | Get a specific impersonation by ID                   | `admin:impersonations:read`      |
+| `POST` | `/admin/impersonations`                         | Start impersonating a user with audit trail          | `admin:impersonations:start`     |
+| `POST` | `/admin/impersonations/{impersonation_id}/stop` | End impersonation and restore original admin session | `admin:impersonations:stop`      |
 
 ---
 
