@@ -12,7 +12,7 @@ export default function Layout({ children }: LayoutProps<"/">) {
           url: "/docs",
         },
         {
-          text: "Contact Us",
+          text: "Contact",
           url: "/contact-us",
         },
       ]}
