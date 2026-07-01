@@ -20,3 +20,9 @@ minimumReleaseAgeExclude:
   - fumadocs-core@16.10.7
   - fumadocs-ui@16.10.7
   - tailwindcss@4.3.2
+  - '@radix-ui/react-label@2.1.11'
+  - '@radix-ui/react-primitive@2.1.7'
+  - '@radix-ui/react-scroll-area@1.2.13'
+  - framer-motion@12.42.2
+  - motion-dom@12.42.2
+  - motion@12.42.2
