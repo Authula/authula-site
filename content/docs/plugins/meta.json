@@ -2,6 +2,7 @@
   "pages": [
     "access-control",
     "admin",
+    "api-key",
     "bearer",
     "csrf",
     "email-password",
@@ -9,10 +10,10 @@
     "jwt",
     "magic-link",
     "oauth2",
+    "organizations",
     "ratelimit",
     "secondary-storage",
     "session",
-    "totp",
-    "organizations"
+    "totp"
   ]
 }

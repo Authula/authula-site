@@ -1,0 +1,334 @@
+---
+title: API Key Plugin
+description: Create, manage, and authenticate using API keys with scoped permissions and rate limiting support.
+---
+
+# API Key Plugin
+
+## Overview
+
+The API Key plugin provides programmable key management for machine-to-machine or personal access. It supports two ownership models — user-owned and organization-owned keys and enforces a permission subset rule: the creator of a key can only assign permissions they themselves hold.
+
+API keys can be configured with expiration, per-key rate limits, custom metadata, and a configurable header for automatic authentication via a pre-request hook.
+
+### Features
+
+- **Two ownership models**: Keys can be owned by a user or an organization
+- **Scoped permissions**: Assign granular permission strings to each key
+- **Permission subset enforcement**: A key's permissions are bounded by the creator's own scopes
+- **Automatic authentication**: Validates keys via a configurable request header and sets the actor on the request context
+- **Per-key rate limiting**: Enforce request quotas per key using the shared rate limiter service
+- **Key expiration**: Keys can be set to expire at a specific time
+- **Key prefix & preview**: Configurable prefix and start/last snippets for identifying keys without exposing the full secret
+- **Metadata**: Arbitrary key-value metadata attached to each key
+- **Programmatic CRUD**: Full Create, Read, Update, Delete API via authenticated HTTP endpoints
+
+---
+
+## Configuration
+
+### Standalone Mode
+
+```toml
+[api-key]
+enabled = true
+# Whether to allow organization-owned API keys.
+# Requires the organizations plugin to be enabled.
+allow_org_keys = false
+# Optional prefix prepended to generated API keys (e.g. "authula_sk_").
+default_prefix = ""
+# HTTP header used for API key authentication.
+# Default: "X-AUTHULA-API-KEY"
+header = "X-AUTHULA-API-KEY"
+# Whether to automatically cleanup expired API keys.
+auto_cleanup = false
+# Interval at which the cleanup job runs.
+# Default: "1m"
+cleanup_interval = "1m"
+```
+
+### Library Mode
+
+```go
+import (
+    apikey "github.com/Authula/authula/plugins/api-key"
+    apikeytypes "github.com/Authula/authula/plugins/api-key/types"
+)
+
+plugin := apikey.New(apikeytypes.ApiKeyPluginConfig{
+    AllowOrgKeys:     false,
+    DefaultPrefix:    "",
+    Header:           "X-AUTHULA-API-KEY",
+    AutoCleanup:      false,
+    CleanupInterval:  time.Minute,
+})
+```
+
+### Cleanup System
+
+When `auto_cleanup` is enabled, the plugin starts a background goroutine that periodically deletes expired API keys. The `cleanup_interval` field controls how often this job runs (defaults to 1 minute if not set or set to a non-positive value).
+
+---
+
+## API Reference
+
+All endpoints require authentication via a bearer token or session. The authenticated user's scopes determine what operations they can perform.
+
+| HTTP Method | Route Path         | Description                  |
+| ----------- | ------------------ | ---------------------------- |
+| `POST`      | `/api-keys`        | Create an API key            |
+| `GET`       | `/api-keys`        | List API keys                |
+| `GET`       | `/api-keys/{id}`   | Get an API key by ID         |
+| `PATCH`     | `/api-keys/{id}`   | Update an API key            |
+| `DELETE`    | `/api-keys/{id}`   | Delete an API key            |
+| `POST`      | `/api-keys/verify` | Verify an API key's validity |
+
+### Create API Key
+
+**`POST /api-keys`**
+
+Request body:
+
+```json
+{
+  "name": "My API Key",
+  "owner_type": "user",
+  "owner_id": "user-123",
+  "prefix": "sk_",
+  "enabled": true,
+  "expires_at": "2027-12-31T23:59:59Z",
+  "rate_limit_enabled": true,
+  "rate_limit_time_window": 60,
+  "rate_limit_max_requests": 100,
+  "permissions": ["admin:users:list", "organizations:read"],
+  "metadata": { "key": "value" }
+}
+```
+
+**Constraints:**
+
+- `owner_type` must be `"user"` or `"organization"` — organization keys only work when `allow_org_keys` is enabled and the organizations plugin is registered.
+- For user-owned keys, `owner_id` must match the authenticated user's ID.
+- For organization-owned keys, the actor (human user) must hold the `org:api-key:create` scope.
+- The actor can only assign permissions they themselves hold in their own scopes.
+
+Response (`201 Created`):
+
+```json
+{
+  "raw_api_key": "sk_6d75b3232bebb5b684e6c2183b074313580c7e31de5f4781c5b32c5d70acf1e1",
+  "api_key": {
+    "id": "uuid-...",
+    "name": "My API Key",
+    "owner_type": "user",
+    "owner_id": "user-123",
+    "prefix": "sk_",
+    "start": "6d75",
+    "last": "f1e1",
+    "enabled": true,
+    "rate_limit_enabled": true,
+    "expires_at": "2027-12-31T23:59:59Z",
+    "permissions": ["admin:users:list", "organizations:read"],
+    "metadata": { "key": "value" },
+    "created_at": "2026-07-01T12:00:00Z",
+    "updated_at": "2026-07-01T12:00:00Z"
+  }
+}
+```
+
+> **⚠️ Important:** The `raw_api_key` value is only returned at creation time and cannot be retrieved again. Store it securely.
+
+### List API Keys
+
+**`GET /api-keys?page=1&limit=20&owner_type=organization&owner_id=org-456`**
+
+- User-owned keys: automatically scoped to the authenticated user (no special scope required).
+- Organization-owned keys: the actor must hold the `org:api-key:list` scope.
+
+Response (`200 OK`):
+
+```json
+{
+  "items": [ ... ],
+  "total": 1,
+  "page": 1,
+  "limit": 20
+}
+```
+
+### Get API Key
+
+**`GET /api-keys/{id}`**
+
+- User-owned keys: only the owner can view.
+- Organization-owned keys: the actor must hold the `org:api-key:read` scope.
+
+Response (`200 OK`):
+
+```json
+{
+  "api_key": { ... }
+}
+```
+
+### Update API Key
+
+**`PATCH /api-keys/{id}`**
+
+Request body — all fields optional:
+
+```json
+{
+  "name": "Updated Name",
+  "enabled": false,
+  "rate_limit_enabled": true,
+  "rate_limit_time_window": 30,
+  "rate_limit_max_requests": 50,
+  "expires_at": "2028-01-01T00:00:00Z",
+  "permissions": ["read"],
+  "metadata": { "env": "staging" }
+}
+```
+
+- User-owned keys: only the owner can update.
+- Organization-owned keys: the actor must hold the `org:api-key:update` scope.
+- Permission subset enforcement applies: new permissions must be within the actor's scopes.
+
+Response (`200 OK`):
+
+```json
+{
+  "api_key": { ... }
+}
+```
+
+### Delete API Key
+
+**`DELETE /api-keys/{id}`**
+
+- User-owned keys: only the owner can delete.
+- Organization-owned keys: the actor must hold the `org:api-key:delete` scope.
+
+Response (`200 OK`):
+
+```json
+{
+  "message": "API key deleted successfully"
+}
+```
+
+### Verify API Key
+
+**`POST /api-keys/verify`**
+
+Request body:
+
+```json
+{
+  "key": "sk_6d75b3232bebb5b684e6c2183b074313580c7e31de5f4781c5b32c5d70acf1e1"
+}
+```
+
+The raw key is hashed using the token service and looked up. Returns whether the key is valid (exists, enabled, and not expired).
+
+Response (`200 OK`):
+
+```json
+{
+  "api_key": { ... }
+}
+```
+
+Response (`401 Unauthorized`):
+
+```json
+{
+  "message": "invalid or expired API key"
+}
+```
+
+---
+
+## Database Schema
+
+### Table: `api_keys`
+
+| Field                | Type       | Key | Description                                                       |
+| -------------------- | ---------- | --- | ----------------------------------------------------------------- |
+| `id`                 | UUID       | PK  | Unique identifier for the API key                                 |
+| `key_hash`           | string     | -   | Hashed value of the full API key (used for lookup)                |
+| `name`               | string     | -   | Human-readable name for the key                                   |
+| `owner_type`         | string     | -   | Owner type: `"user"` or `"organization"`                          |
+| `owner_id`           | UUID       | FK  | Reference to the owner (user or organization)                     |
+| `prefix`             | string?    | -   | Optional prefix prepended to the raw key value                    |
+| `start`              | string     | -   | First 4 characters of the raw key (for display without revealing) |
+| `last`               | string     | -   | Last 4 characters of the raw key (for display without revealing)  |
+| `enabled`            | boolean    | -   | Whether the key is active                                         |
+| `rate_limit_enabled` | boolean    | -   | Whether per-key rate limiting is enabled                          |
+| `last_requested_at`  | timestamp? | -   | Timestamp of the last request using this key                      |
+| `expires_at`         | timestamp? | -   | Optional expiration timestamp (keys are rejected after this time) |
+| `permissions`        | string[]   | -   | List of permission strings scoped to this key                     |
+| `metadata`           | JSON       | -   | Arbitrary key-value metadata                                      |
+| `created_at`         | timestamp  | -   | Record creation time                                              |
+| `updated_at`         | timestamp  | -   | Record last update time                                           |
+
+**Indexes:** `key_hash` (unique), `owner_id`, `(owner_type, owner_id)`, `expires_at`, `enabled`.
+
+Migrations are automatically handled when the plugin is initialized — no manual migration steps required.
+
+---
+
+## Plugin Capabilities
+
+This plugin doesn't have any hooks and capabilities.
+
+---
+
+## Permission Registration
+
+The plugin registers the following permissions with the access control system at initialization:
+
+| Permission Key       | Description                            |
+| -------------------- | -------------------------------------- |
+| `org:api-key:create` | Create API keys for the organization   |
+| `org:api-key:list`   | List API keys for the organization     |
+| `org:api-key:read`   | Read an API key for the organization   |
+| `org:api-key:update` | Update an API key for the organization |
+| `org:api-key:delete` | Delete an API key for the organization |
+
+---
+
+## Security
+
+### Permission Subset Enforcement
+
+The API Key plugin implements a critical security constraint: **a user can only assign permissions to an API key that they themselves possess**.
+
+When creating or updating a key, the service checks that every permission being assigned to the key exists within the actor's own `Scopes` list. This prevents privilege escalation where a user with limited permissions could create a key with broader permissions than their own.
+
+- For user-owned keys: the actor's scopes come from their own roles and user permissions.
+- For organization-owned keys: the actor's scopes include their organizational roles and permissions, and they must also hold the relevant `org:api-key:*` scope.
+
+### Wildcard Support
+
+The permission system supports wildcard matching (`*` and `organizations:*`), so an actor with a wildcard scope can assign any matching permission to their keys.
+
+### Key Storage
+
+Only the hashed key value is stored in the database. The raw key is returned once at creation and cannot be recovered. Store it securely at creation time.
+
+### Plugin Dependencies
+
+The API Key plugin depends on the **Access Control** plugin and will not initialize without it. Organization-owned keys additionally require the **Organizations** plugin.
+
+---
+
+## Troubleshooting
+
+| Symptom                                      | Likely Cause                                                       | Solution                                                        |
+| -------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------- |
+| `organization service is not available`      | `allow_org_keys` is `true` but the organizations plugin is missing | Enable the organizations plugin or set `allow_org_keys = false` |
+| `permission "..." is not within your scopes` | Actor tried to assign a permission they don't hold                 | Assign the permission to the actor first, or use a subset       |
+| `failed to ensure api key permissions`       | Access Control plugin is not enabled                               | Enable the `access-control` plugin                              |
+| Key accepted but 403 on downstream routes    | The key's permissions don't include the required scopes            | Update the key's permissions or the route's required scope      |
+| API key not recognized                       | Wrong header name or key format                                    | Verify `header` config matches the client's header              |
