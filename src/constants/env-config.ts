@@ -1,15 +1,11 @@
 export const ENV_CONFIG = {
   resend: {
     apiKey: process.env.RESEND_API_KEY as string,
-    webhookSecret: process.env.RESEND_WEBHOOK_SECRET as string,
     segmentId: process.env.RESEND_SEGMENT_ID as string,
   },
   upstash: {
     url: process.env.UPSTASH_REDIS_REST_URL as string,
     token: process.env.UPSTASH_REDIS_REST_TOKEN as string,
-  },
-  discord: {
-    webhookUrl: process.env.DISCORD_WEBHOOK_URL as string,
   },
   umami: {
     websiteId: process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID as string,
