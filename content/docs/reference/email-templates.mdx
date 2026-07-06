@@ -1,0 +1,212 @@
+---
+title: Email Templates
+---
+
+Authula uses Go's `html/template` and `text/template` engines for all email rendering. Templates are embedded at build time via `go:embed`, with optional runtime overrides via environment variables.
+
+## Architecture
+
+Every email type (verify email, password reset, magic link sign-in, etc.) has three template files under its plugin's `templates/` directory:
+
+| File           | Engine          | Purpose                                      |
+| -------------- | --------------- | -------------------------------------------- |
+| `subject.tmpl` | `text/template` | Email subject line                           |
+| `text.tmpl`    | `text/template` | Plain-text body                              |
+| `html.tmpl`    | `html/template` | HTML body (auto-escaped, `missingkey=error`) |
+
+Templates are parsed eagerly during plugin `Init()`. If parsing fails, the plugin fails to start (fail-fast). Environment variable overrides are read once at startup and are immutable for the process lifetime.
+
+### Available template functions
+
+| Function        | Signature               | Description                                                      |
+| --------------- | ----------------------- | ---------------------------------------------------------------- |
+| `humanDuration` | `humanDuration .Expiry` | Formats a `time.Duration` as e.g. "1 hour", "24 hours", "2 days" |
+| `plural`        | `plural "item" .Count`  | Returns singular or plural form                                  |
+| `upper`         | `upper .String`         | Uppercases the string                                            |
+| `lower`         | `lower .String`         | Lowercases the string                                            |
+| `title`         | `title .String`         | Title-cases the first character                                  |
+| `currentYear`   | `currentYear`           | Returns the current year (e.g. 2026)                             |
+
+### Context structs
+
+Each template receives a context struct that embeds `CommonContext`:
+
+**CommonContext:**
+
+- `AppName` — the application name (from config)
+- `BaseURL` — the base URL of the API
+
+---
+
+## Email Types & Contexts
+
+### 1. Email/Password Plugin
+
+#### Verify Email
+
+| Field              | Type            | Description                |
+| ------------------ | --------------- | -------------------------- |
+| `UserEmail`        | `string`        | Recipient's email          |
+| `VerificationLink` | `string`        | One-click verification URL |
+| `Expiry`           | `time.Duration` | Link expiration duration   |
+
+#### Password Reset
+
+| Field       | Type            | Description              |
+| ----------- | --------------- | ------------------------ |
+| `UserEmail` | `string`        | Recipient's email        |
+| `ResetLink` | `string`        | Password reset URL       |
+| `Expiry`    | `time.Duration` | Link expiration duration |
+
+#### Password Changed
+
+| Field       | Type     | Description       |
+| ----------- | -------- | ----------------- |
+| `UserEmail` | `string` | Recipient's email |
+
+#### Email Change Request
+
+| Field        | Type            | Description                   |
+| ------------ | --------------- | ----------------------------- |
+| `UserEmail`  | `string`        | Current email                 |
+| `OldEmail`   | `string`        | Old email address             |
+| `NewEmail`   | `string`        | New email address             |
+| `ChangeLink` | `string`        | Email change confirmation URL |
+| `Expiry`     | `time.Duration` | Link expiration duration      |
+
+#### Email Changed
+
+| Field       | Type     | Description                              |
+| ----------- | -------- | ---------------------------------------- |
+| `UserEmail` | `string` | Recipient's email (varies per recipient) |
+| `OldEmail`  | `string` | Old email address                        |
+| `NewEmail`  | `string` | New email address                        |
+
+This template is rendered twice: once for the old address (`UserEmail` = old) and once for the new address (`UserEmail` = new).
+
+---
+
+### 2. Magic Link Plugin
+
+#### Magic Link Sign-In
+
+| Field       | Type            | Description              |
+| ----------- | --------------- | ------------------------ |
+| `UserEmail` | `string`        | User's email             |
+| `MagicLink` | `string`        | One-click sign-in URL    |
+| `Expiry`    | `time.Duration` | Link expiration duration |
+
+---
+
+### 3. Organizations Plugin
+
+#### Organization Invitation
+
+| Field              | Type            | Description                    |
+| ------------------ | --------------- | ------------------------------ |
+| `InvitationEmail`  | `string`        | Invitee's email                |
+| `OrganizationName` | `string`        | Organization name              |
+| `Role`             | `string`        | Assigned role                  |
+| `AcceptLink`       | `string`        | Invitation acceptance URL      |
+| `Expiry`           | `time.Duration` | Invitation expiration duration |
+
+---
+
+## Overriding Templates via Environment Variables
+
+Every email template can be overridden at startup using environment variables. The naming convention is:
+
+```
+AUTHULA_TEMPLATE_<EMAIL_TYPE>_SUBJECT
+AUTHULA_TEMPLATE_<EMAIL_TYPE>_TEXT
+AUTHULA_TEMPLATE_<EMAIL_TYPE>_HTML
+```
+
+Where `<EMAIL_TYPE>` is the uppercase, underscore-separated email type name.
+
+### Email/Password Plugin
+
+| Env Variable                                      | Overrides                         |
+| ------------------------------------------------- | --------------------------------- |
+| `AUTHULA_TEMPLATE_VERIFY_EMAIL_SUBJECT`           | Verify email subject              |
+| `AUTHULA_TEMPLATE_VERIFY_EMAIL_TEXT`              | Verify email plain text           |
+| `AUTHULA_TEMPLATE_VERIFY_EMAIL_HTML`              | Verify email HTML                 |
+| `AUTHULA_TEMPLATE_PASSWORD_RESET_REQUEST_SUBJECT` | Password reset request subject    |
+| `AUTHULA_TEMPLATE_PASSWORD_RESET_REQUEST_TEXT`    | Password reset request plain text |
+| `AUTHULA_TEMPLATE_PASSWORD_RESET_REQUEST_HTML`    | Password reset request HTML       |
+| `AUTHULA_TEMPLATE_PASSWORD_CHANGED_SUBJECT`       | Password changed subject          |
+| `AUTHULA_TEMPLATE_PASSWORD_CHANGED_TEXT`          | Password changed plain text       |
+| `AUTHULA_TEMPLATE_PASSWORD_CHANGED_HTML`          | Password changed HTML             |
+| `AUTHULA_TEMPLATE_EMAIL_CHANGE_REQUEST_SUBJECT`   | Email change request subject      |
+| `AUTHULA_TEMPLATE_EMAIL_CHANGE_REQUEST_TEXT`      | Email change request plain text   |
+| `AUTHULA_TEMPLATE_EMAIL_CHANGE_REQUEST_HTML`      | Email change request HTML         |
+| `AUTHULA_TEMPLATE_EMAIL_CHANGED_SUBJECT`          | Email changed subject             |
+| `AUTHULA_TEMPLATE_EMAIL_CHANGED_TEXT`             | Email changed plain text          |
+| `AUTHULA_TEMPLATE_EMAIL_CHANGED_HTML`             | Email changed HTML                |
+
+### Magic Link Plugin
+
+| Env Variable                                  | Overrides             |
+| --------------------------------------------- | --------------------- |
+| `AUTHULA_TEMPLATE_MAGIC_LINK_SIGN_IN_SUBJECT` | Magic link subject    |
+| `AUTHULA_TEMPLATE_MAGIC_LINK_SIGN_IN_TEXT`    | Magic link plain text |
+| `AUTHULA_TEMPLATE_MAGIC_LINK_SIGN_IN_HTML`    | Magic link HTML       |
+
+### Organizations Plugin
+
+| Env Variable                                       | Overrides                 |
+| -------------------------------------------------- | ------------------------- |
+| `AUTHULA_TEMPLATE_ORGANIZATION_INVITATION_SUBJECT` | Org invitation subject    |
+| `AUTHULA_TEMPLATE_ORGANIZATION_INVITATION_TEXT`    | Org invitation plain text |
+| `AUTHULA_TEMPLATE_ORGANIZATION_INVITATION_HTML`    | Org invitation HTML       |
+
+### Example: Override the verify email HTML template
+
+```bash
+# .env
+AUTHULA_TEMPLATE_VERIFY_EMAIL_HTML="<div>
+  <h1>Hi {{.UserEmail}},</h1>
+  <p>Click <a href='{{.VerificationLink}}'>here</a> to verify your email.</p>
+  <p>This link expires in {{humanDuration .Expiry}}.</p>
+</div>"
+```
+
+## Viewing Default Templates
+
+The built-in templates are embedded in each plugin's `templates/` directory:
+
+```
+plugins/email-password/templates/*
+plugins/magic-link/templates/*
+plugins/organizations/templates/*
+```
+
+## Template Syntax
+
+Templates use Go's standard template syntax (`{{.FieldName}}`). The HTML templates automatically escape HTML characters (e.g., `<` becomes `&lt;`), so you never need to manually escape values in the HTML body.
+
+### subject.tmpl example
+
+```
+Verify your email
+```
+
+### text.tmpl example
+
+```
+Verify your email by clicking the following link: {{.VerificationLink}}.
+```
+
+### html.tmpl example
+
+```html
+<div>
+  <p>Hello {{.UserEmail}},</p>
+  <p>
+    Please verify your email address by clicking the following link:
+    <a href="{{.VerificationLink}}">Verify your email</a>
+  </p>
+  <p>This link will expire in {{humanDuration .Expiry}}.</p>
+  <p>If you did not request this, please ignore this email.</p>
+</div>
+```

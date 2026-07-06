@@ -1,4 +1,10 @@
 {
   "title": "Reference",
-  "pages": ["config", "database-schema", "sdks", "playground"]
+  "pages": [
+    "config",
+    "database-schema",
+    "email-templates",
+    "sdks",
+    "playground"
+  ]
 }

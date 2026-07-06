@@ -85,53 +85,53 @@ Each endpoint in this plugin requires the caller to have a specific hardcoded pe
 
 ### Organizations
 
-| HTTP Method | Route Path                         | Description               | Required Permission              |
-| ----------- | ---------------------------------- | ------------------------- | -------------------------------- |
-| `POST`      | `/organizations`                   | Create organization       | `organizations:create`           |
-| `GET`       | `/organizations`                   | List user's organizations | `organizations:list`             |
-| `GET`       | `/organizations/{organization_id}` | Get organization          | `organizations:read`             |
-| `PATCH`     | `/organizations/{organization_id}` | Update organization       | `organizations:update`           |
-| `DELETE`    | `/organizations/{organization_id}` | Delete organization       | `organizations:delete`           |
+| HTTP Method | Route Path                         | Description               | Required Permission    |
+| ----------- | ---------------------------------- | ------------------------- | ---------------------- |
+| `POST`      | `/organizations`                   | Create organization       | `organizations:create` |
+| `GET`       | `/organizations`                   | List user's organizations | `organizations:list`   |
+| `GET`       | `/organizations/{organization_id}` | Get organization          | `organizations:read`   |
+| `PATCH`     | `/organizations/{organization_id}` | Update organization       | `organizations:update` |
+| `DELETE`    | `/organizations/{organization_id}` | Delete organization       | `organizations:delete` |
 
 ### Invitations
 
-| HTTP Method | Route Path                                                            | Description       | Required Permission                      |
-| ----------- | --------------------------------------------------------------------- | ----------------- | ---------------------------------------- |
-| `POST`      | `/organizations/{organization_id}/invitations`                        | Create invitation | `organizations:invitations:create`       |
-| `GET`       | `/organizations/{organization_id}/invitations`                        | List invitations  | `organizations:invitations:list`         |
-| `GET`       | `/organizations/{organization_id}/invitations/{invitation_id}`        | Get invitation    | `organizations:invitations:read`         |
-| `PATCH`     | `/organizations/{organization_id}/invitations/{invitation_id}`        | Revoke invitation | `organizations:invitations:revoke`       |
-| `POST`      | `/organizations/{organization_id}/invitations/{invitation_id}/accept` | Accept invitation | `organizations:invitations:process`      |
-| `POST`      | `/organizations/{organization_id}/invitations/{invitation_id}/reject` | Reject invitation | `organizations:invitations:process`      |
+| HTTP Method | Route Path                                                            | Description       | Required Permission                |
+| ----------- | --------------------------------------------------------------------- | ----------------- | ---------------------------------- |
+| `POST`      | `/organizations/{organization_id}/invitations`                        | Create invitation | `organizations:invitations:create` |
+| `GET`       | `/organizations/{organization_id}/invitations`                        | List invitations  | `organizations:invitations:list`   |
+| `GET`       | `/organizations/{organization_id}/invitations/{invitation_id}`        | Get invitation    | `organizations:invitations:read`   |
+| `PATCH`     | `/organizations/{organization_id}/invitations/{invitation_id}`        | Revoke invitation | `organizations:invitations:revoke` |
+| `POST`      | `/organizations/{organization_id}/invitations/{invitation_id}/accept` | Accept invitation | `None`                             |
+| `POST`      | `/organizations/{organization_id}/invitations/{invitation_id}/reject` | Reject invitation | `None`                             |
 
 ### Members
 
-| HTTP Method | Route Path                                             | Description   | Required Permission                  |
-| ----------- | ------------------------------------------------------ | ------------- | ------------------------------------ |
-| `POST`      | `/organizations/{organization_id}/members`             | Add member    | `organizations:members:add`          |
-| `GET`       | `/organizations/{organization_id}/members`             | List members  | `organizations:members:list`         |
-| `GET`       | `/organizations/{organization_id}/members/{member_id}` | Get member    | `organizations:members:read`         |
-| `PATCH`     | `/organizations/{organization_id}/members/{member_id}` | Update member | `organizations:members:update`       |
-| `DELETE`    | `/organizations/{organization_id}/members/{member_id}` | Remove member | `organizations:members:remove`       |
+| HTTP Method | Route Path                                             | Description   | Required Permission            |
+| ----------- | ------------------------------------------------------ | ------------- | ------------------------------ |
+| `POST`      | `/organizations/{organization_id}/members`             | Add member    | `organizations:members:add`    |
+| `GET`       | `/organizations/{organization_id}/members`             | List members  | `organizations:members:list`   |
+| `GET`       | `/organizations/{organization_id}/members/{member_id}` | Get member    | `organizations:members:read`   |
+| `PATCH`     | `/organizations/{organization_id}/members/{member_id}` | Update member | `organizations:members:update` |
+| `DELETE`    | `/organizations/{organization_id}/members/{member_id}` | Remove member | `organizations:members:remove` |
 
 ### Teams
 
-| HTTP Method | Route Path                                         | Description | Required Permission                  |
-| ----------- | -------------------------------------------------- | ----------- | ------------------------------------ |
-| `POST`      | `/organizations/{organization_id}/teams`           | Create team | `organizations:teams:create`         |
-| `GET`       | `/organizations/{organization_id}/teams`           | List teams  | `organizations:teams:list`           |
-| `GET`       | `/organizations/{organization_id}/teams/{team_id}` | Get team    | `organizations:teams:read`           |
-| `PATCH`     | `/organizations/{organization_id}/teams/{team_id}` | Update team | `organizations:teams:update`         |
-| `DELETE`    | `/organizations/{organization_id}/teams/{team_id}` | Delete team | `organizations:teams:delete`         |
+| HTTP Method | Route Path                                         | Description | Required Permission          |
+| ----------- | -------------------------------------------------- | ----------- | ---------------------------- |
+| `POST`      | `/organizations/{organization_id}/teams`           | Create team | `organizations:teams:create` |
+| `GET`       | `/organizations/{organization_id}/teams`           | List teams  | `organizations:teams:list`   |
+| `GET`       | `/organizations/{organization_id}/teams/{team_id}` | Get team    | `organizations:teams:read`   |
+| `PATCH`     | `/organizations/{organization_id}/teams/{team_id}` | Update team | `organizations:teams:update` |
+| `DELETE`    | `/organizations/{organization_id}/teams/{team_id}` | Delete team | `organizations:teams:delete` |
 
 ### Team Members
 
-| HTTP Method | Route Path                                                             | Description             | Required Permission                        |
-| ----------- | ---------------------------------------------------------------------- | ----------------------- | ------------------------------------------ |
-| `POST`      | `/organizations/{organization_id}/teams/{team_id}/members`             | Add member to team      | `organizations:team-members:add`           |
-| `GET`       | `/organizations/{organization_id}/teams/{team_id}/members`             | List team members       | `organizations:team-members:list`          |
-| `GET`       | `/organizations/{organization_id}/teams/{team_id}/members/{member_id}` | Get team member         | `organizations:team-members:read`          |
-| `DELETE`    | `/organizations/{organization_id}/teams/{team_id}/members/{member_id}` | Remove member from team | `organizations:team-members:remove`        |
+| HTTP Method | Route Path                                                             | Description             | Required Permission                 |
+| ----------- | ---------------------------------------------------------------------- | ----------------------- | ----------------------------------- |
+| `POST`      | `/organizations/{organization_id}/teams/{team_id}/members`             | Add member to team      | `organizations:team-members:add`    |
+| `GET`       | `/organizations/{organization_id}/teams/{team_id}/members`             | List team members       | `organizations:team-members:list`   |
+| `GET`       | `/organizations/{organization_id}/teams/{team_id}/members/{member_id}` | Get team member         | `organizations:team-members:read`   |
+| `DELETE`    | `/organizations/{organization_id}/teams/{team_id}/members/{member_id}` | Remove member from team | `organizations:team-members:remove` |
 
 ---
 
