@@ -2,24 +2,7 @@ allowBuilds:
   esbuild: true
   sharp: true
 minimumReleaseAgeExclude:
-  - '@biomejs/biome@2.5.2'
-  - '@biomejs/cli-darwin-arm64@2.5.2'
-  - '@biomejs/cli-darwin-x64@2.5.2'
-  - '@biomejs/cli-linux-arm64-musl@2.5.2'
-  - '@biomejs/cli-linux-arm64@2.5.2'
-  - '@biomejs/cli-linux-x64-musl@2.5.2'
-  - '@biomejs/cli-linux-x64@2.5.2'
-  - '@biomejs/cli-win32-arm64@2.5.2'
-  - '@biomejs/cli-win32-x64@2.5.2'
-  - '@next/env@16.2.10'
-  - '@next/swc-darwin-arm64@16.2.10'
-  - '@next/swc-darwin-x64@16.2.10'
-  - '@next/swc-linux-arm64-gnu@16.2.10'
-  - '@next/swc-linux-arm64-musl@16.2.10'
-  - '@next/swc-linux-x64-gnu@16.2.10'
-  - '@next/swc-linux-x64-musl@16.2.10'
-  - '@next/swc-win32-arm64-msvc@16.2.10'
-  - '@next/swc-win32-x64-msvc@16.2.10'
-  - '@types/node@26.1.0'
-  - lucide-react@1.23.0
-  - next@16.2.10
+  - '@fumadocs/tailwind@0.1.0'
+  - fumadocs-core@16.11.1
+  - fumadocs-mdx@15.1.0
+  - fumadocs-ui@16.11.1

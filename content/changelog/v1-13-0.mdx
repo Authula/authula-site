@@ -1,0 +1,30 @@
+---
+title: New Update - v1.13.0
+date: 2026-07-01
+version: v1.13.0
+type: feature
+---
+
+## What's New
+
+- Add shared Authorizer with typed permission constants and scope checks
+- Refactor impersonation and state use cases to include actor context
+- Added new API Key plugin
+- Added ability to add auto-cleanup for expired api keys to api key plugin
+- Refactored cleanup system for sessions and verifications which now use the reusable cleanup loop
+
+---
+
+## Get Started
+
+### Standalone Mode
+
+```bash
+$ docker pull ghcr.io/authula/authula:v1.13.0
+```
+
+### Library Mode
+
+```bash
+$ go get github.com/Authula/authula@v1.13.0
+```

@@ -1,0 +1,38 @@
+---
+title: v1.0.0 — Initial Release
+description: The first stable release of Authula
+date: 2026-03-28
+version: v1.0.0
+type: feature
+---
+
+## What's New
+
+After months of development, we're thrilled to announce the first stable release of **Authula** — an open-source authentication solution that scales with you.
+
+---
+
+### Key Features
+
+- A flexible plugin system where you can compose exactly the authentication stack you need.
+- Multiple database backends
+- Event bus
+- Hooks system
+- Custom routes and logic
+
+---
+
+#### Available plugins:
+
+- **Email/Password**: authenticate using email & password
+- **OAuth2**: social sign in with support for Google, GitHub and Discord
+- **TOTP**: authenticator app support, backup codes, trusted devices for two-factor authentication
+- **Secondary storage**: support for Redis, in-memory and DB
+- **Rate limiting** support for API routes
+- **CSRF** protection
+
+---
+
+### Library & Server Mode
+
+Authula can be embedded as a Go library or run as a standalone auth server with any tech stack. Both modes are fully supported from day one.

@@ -1,0 +1,28 @@
+---
+title: New Update - v1.14.0
+date: 2026-07-05
+version: v1.14.0
+type: feature
+---
+
+## What's New
+
+- Fixed issue with admin not being able to stop impersonation due to their scopes not being persisted and passed through actor context.
+- Admin session recoverability implemented after stopping impersonation, allowing them to continue their session without needing to log in again. This is supported for both session & JWT based auth.
+- Added a new "all" permission across access control, admin, organizations and api key plugins.
+
+---
+
+## Get Started
+
+### Standalone Mode
+
+```bash
+$ docker pull ghcr.io/authula/authula:v1.14.0
+```
+
+### Library Mode
+
+```bash
+$ go get github.com/Authula/authula@v1.14.0
+```
