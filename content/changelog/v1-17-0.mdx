@@ -1,0 +1,33 @@
+---
+title: New Update - v1.17.0
+date: 2026-07-10T22:30:00Z
+version: v1.17.0
+type: improvement
+---
+
+## What's New
+
+- Moved errors package out of internal to make it accessible and usable in Library mode
+- Moved util package out of internal to make it accessible and usable in Library mode
+- Moved internal email folder into core package
+- Moved core handlers, usecases, services etc from internal into core package
+- Moved internal repos and services into core package
+- Moved internal events into core package
+- Moved internal systems and cleanup to core package
+- Moved internal security to core package
+
+---
+
+## Get Started
+
+### Standalone Mode
+
+```bash
+$ docker pull ghcr.io/authula/authula:v1.17.0
+```
+
+### Library Mode
+
+```bash
+$ go get github.com/Authula/authula@v1.17.0
+```
