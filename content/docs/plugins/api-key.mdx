@@ -28,7 +28,7 @@ API keys can be configured with expiration, per-key rate limits, custom metadata
 ### Standalone Mode
 
 ```toml
-[api-key]
+[plugins.api_key]
 enabled = true
 # Whether to allow organization-owned API keys.
 # Requires the organizations plugin to be enabled.
@@ -49,11 +49,11 @@ cleanup_interval = "1m"
 
 ```go
 import (
-    apikey "github.com/Authula/authula/plugins/api-key"
-    apikeytypes "github.com/Authula/authula/plugins/api-key/types"
+    apikeyplugin "github.com/Authula/authula/plugins/api-key"
+    apikeyplugintypes "github.com/Authula/authula/plugins/api-key/types"
 )
 
-plugin := apikey.New(apikeytypes.ApiKeyPluginConfig{
+plugin := apikeyplugin.New(apikeyplugintypes.ApiKeyPluginConfig{
     AllowOrgKeys:     false,
     DefaultPrefix:    "",
     Header:           "X-AUTHULA-API-KEY",
