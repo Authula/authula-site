@@ -5,12 +5,17 @@ description: Provide request rate limiting with multiple storage backends and pe
 
 ## Overview
 
-The Rate Limit plugin provides request rate limiting with multiple storage backends and per-endpoint custom rules to protect your application from abuse and brute force attacks.
+The Rate Limit plugin provides request rate limiting with multiple storage backends and a flexible custom rule system to protect your application from abuse and brute force attacks. It uses a fixed-window counter algorithm and supports method-level rules, parameterized path matching, and wildcard route patterns.
 
 ### Features
 
 - **Multiple Storage Backends** — In-memory (default), Redis, or Database storage
 - **Custom Rules Per Endpoint** — Different limits for different paths or methods
+- **Method-Level Rules** — Apply rules to specific HTTP methods (e.g., `POST:/auth/login`)
+- **Parameterized Path Matching** — Rules match dynamic route parameters like `{id}` and wildcards via normalization
+- **Auto-Pattern Fallback** — Parameterized or wildcard routes automatically share a single rate limit counter
+- **Per-Key Stored Rules** — Other plugins can set rate limits for specific API keys or identifiers
+- **Client IP Hashing** — Optional SHA-256 hashing of client IPs for privacy compliance
 - **Client IP-Based Limiting** — Tracks requests by client IP address
 - **Standard HTTP Rate Limit Headers** — Client-aware headers for rate limit information
 - **Automatic Cleanup** — Removes expired entries to prevent memory leaks
@@ -30,6 +35,7 @@ window = "1m"              # Time window for rate limiting (default: 1 minute)
 max = 100                  # Max requests per window (default: 100)
 prefix = "ratelimit:"      # Storage key prefix (default: "ratelimit:")
 provider = "memory"        # Options: memory, redis, database (default: memory)
+hash_client_ip = false     # Hash client IPs with SHA-256 (default: false)
 
 # In-Memory storage configuration (default provider)
 [plugins.ratelimit.memory]
@@ -41,8 +47,12 @@ cleanup_interval = "1m"    # How often to clean expired entries (default: 1 minu
 
 # Custom rules for specific endpoints
 [plugins.ratelimit.custom_rules]
-"/some/path" = { window = "5m", max = 5 }     # Stricter limits
-"/some/other/path" = { disabled = true }            # Disable rate limiting for this path
+# Method-specific rule: strict limit on POST /auth/sign-in
+"POST:/api/auth/sign-in" = { window = "15m", max = 10 }
+# Path-only rule: applies to all HTTP methods on /api/public
+"/api/health" = { disabled = true }
+# Parameterized path: matches any organization ID under /organizations/{organization_id}
+"/api/auth/organizations/{organization_id}" = { window = "5m", max = 30 }
 ```
 
 `Library Mode:`
@@ -53,13 +63,18 @@ import (
 )
 
 ratelimitplugin.New(ratelimitplugin.RateLimitPluginConfig{
-  Enabled:  true,
-  Provider: ratelimitplugin.RateLimitProviderRedis,
-  Window:   time.Minute,
-  Max:      100,
-  Prefix:   "ratelimit:",
+  Enabled:      true,
+  Provider:     ratelimitplugin.RateLimitProviderRedis,
+  Window:       time.Minute,
+  Max:          100,
+  Prefix:       "ratelimit:",
+  HashClientIP: true,
   CustomRules: map[string]ratelimitplugin.RateLimitRule{
-    "/some/path": {
+    "POST:/api/auth/sign-in": {
+      Window: 15 * time.Minute,
+      Max:    10,
+    },
+    "/api/health": {
       Disabled: true,
     },
   },
@@ -84,19 +99,72 @@ The Rate Limit plugin does not expose its own HTTP endpoints. Instead, it applie
 
 ### Custom Rules
 
-Override default rate limits for specific paths:
+Custom rules override the default rate limit for specific endpoints using a multi-strategy matching algorithm.
+
+Each rule key is either:
+
+- A **method+path** pattern (e.g., `POST:/api/auth/sign-in`) — only applies to that HTTP method
+- A **path-only** pattern (e.g., `/api/health`) — applies to all HTTP methods on that path
+
+#### Rule Format
 
 ```toml
 [plugins.ratelimit.custom_rules]
-# Stricter rate limit for login attempts
-"/auth/sign-in" = { window = "15m", max = 10 }
+# Method-specific: only applies to POST requests
+"POST:/api/auth/sign-in" = { window = "15m", max = 10 }
 
-# Different limits for specific endpoint
-"/some/path" = { window = "1h", max = 3 }
-
-# Disable rate limiting for specific endpoint
-"/some/path" = { disabled = true }
+# Path-only: applies to all HTTP methods on this path
+"/api/health" = { disabled = true }
 ```
+
+#### Matching Algorithm
+
+When a request arrives, the plugin builds candidate patterns from the request and evaluates them in order. **The first match wins** and its rule is applied.
+
+**Patterns evaluated** (in order):
+
+1. The router's registered path pattern (e.g., `GET:/api/auth/organizations/{organization_id}`)
+2. The actual request method and path (e.g., `GET:/api/auth/organizations/my-org`)
+
+For each pattern, the plugin tries four matching strategies:
+
+| Priority | Strategy                                      | Example                                                                     |
+| -------- | --------------------------------------------- | --------------------------------------------------------------------------- |
+| **1**    | Exact map lookup on the full pattern          | `customRules["GET:/api/auth/organizations/{organization_id}"]`              |
+| **2**    | Normalized match with segment count guard     | `{organization_id}` → `{*}`, then compare normalized keys and segment count |
+| **3**    | Path-only exact match (strips method prefix)  | `customRules["/api/auth/organizations/{organization_id}"]`                  |
+| **4**    | Normalized path-only match with segment guard | Strip method, normalize params, verify segments                             |
+
+#### Parameter Normalization
+
+Path parameters like `{id}`, `{organization_id}`, and wildcards `*` are normalized to `{*}` during matching. This allows rules to match routes regardless of the parameter name:
+
+| Route Pattern                                                       | Normalized Form                               |
+| ------------------------------------------------------------------- | --------------------------------------------- |
+| `GET:/api/auth/organizations/{organization_id}/members/{member_id}` | `GET:/api/auth/organizations/{*}/members/{*}` |
+| `GET:/api/*`                                                        | `GET:/api/{*}`                                |
+| `/users/{id}`                                                       | `/users/{*}`                                  |
+
+#### Segment Count Guard
+
+Before a normalized match is accepted, the plugin verifies the request path has the same number of segments as the rule key. This prevents a rule like `/api/auth/organizations/{organization_id}` from incorrectly matching a 3-segment path like `/api/auth/organizations`.
+
+#### Rule Application
+
+Once a rule is matched:
+
+- If `disabled = true`, rate limiting is completely skipped for that endpoint
+- If `window` is set (> 0), it overrides the default window
+- If `max` is set (> 0), it overrides the default max limit
+- The rate limit counter is keyed by `{prefix}:{clientIP}:{ruleHash}` so each rule has its own counter per client
+
+#### Auto-Pattern Fallback
+
+If no custom rule matches but the request's route pattern contains parameters (`{` or `*`), the plugin automatically keys the rate limit counter by the route pattern rather than the full path. This ensures all requests to a parameterized route (e.g., `/api/auth/organizations/{organization_id}`) share a single counter instead of each dynamic path having its own. Without this, an attacker could bypass limits by varying the path parameter.
+
+#### Per-Key Stored Rules
+
+Other plugins (e.g., API Key plugin) can set dynamic rate limits for specific identifiers at runtime by storing a `RateLimitRuleContext` in the request context. These rules are persisted by the storage provider and evaluated in the `HookBefore` phase, allowing per-client rate limits that survive restarts.
 
 ### HTTP Response Headers
 
@@ -142,13 +210,29 @@ X-Retry-After: 45
 - PostgreSQL: this table is set as an unlogged table to improve performance, with a periodic cleanup process to remove expired entries.
 - MYSQL: this table is set as a MEMORY table to store data in memory for fast access, with automatic cleanup of expired entries.
 
+### Table: `rate_limit_rules`
+
+| Field            | Type   | Key | Description                         |
+| ---------------- | ------ | --- | ----------------------------------- |
+| `key`            | string | PK  | Rule key (e.g., API key identifier) |
+| `window_seconds` | int    | -   | Rate limit window in seconds        |
+| `max_requests`   | int    | -   | Maximum requests allowed per window |
+
+This table stores per-key rate limit rules set by other plugins at runtime (e.g., API Key plugin). When the same storage constraints apply (temp/unlogged/MEMORY) as `rate_limits` above.
+
 Migrations are automatically handled when the plugin is initialized.
 
 ---
 
 ## Plugin Capabilities
 
-This plugin doesn't have any capabilities. However, it does have a global hook which is applied if the plugin is enabled and there are custom rules defined which applies rate limiting to specific endpoints.
+This plugin doesn't have any capabilities. However, it registers three hooks to provide rate limiting:
+
+| Hook            | Order | Purpose                                                                         |
+| --------------- | ----- | ------------------------------------------------------------------------------- |
+| `HookOnRequest` | 0     | Applies IP-based endpoint rate limiting using global and custom rules           |
+| `HookBefore`    | 15    | Evaluates per-key stored rules set by other plugins (e.g., API Key)             |
+| `HookAfter`     | 0     | Persists new per-key rules set via request context during the request lifecycle |
 
 ---
 
