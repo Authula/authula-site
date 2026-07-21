@@ -64,15 +64,15 @@ organizationsplugin.New(organizationsplugintypes.OrganizationsPluginConfig{
   InvitationsLimit:                 new(100),
   InvitationExpiresIn:              7 * 24 * time.Hour,
   RequireEmailVerifiedOnInvitation: true,
+  ServiceHooks: &organizationsplugintypes.OrganizationsServiceHooksConfig{
+    // Optional service hooks for custom logic on organization lifecycle events
+  },
   SendOrganizationInvitationEmail: func(
     params organizationsplugintypes.SendOrganizationInvitationEmailParams,
     reqCtx *authulamodels.RequestContext,
   ) error {
     // Optionally handle email sending here...
     return nil
-  },
-  DatabaseHooks: &organizationsplugintypes.OrganizationsDatabaseHooksConfig{
-    // Optional database hooks for custom logic on organization lifecycle events
   },
 })
 ```
@@ -200,62 +200,72 @@ This plugin creates the following database tables:
 
 Migrations are automatically handled when the plugin is initialized.
 
-### Database Hooks
+### Service Hooks
 
-This plugin supports the following database hooks:
+This plugin supports service-level hooks, providing lifecycle callbacks with access to the actor context. Hooks are only supported in Library Mode.
 
-**Organizations**:
+The following hook configurations are available via `OrganizationsServiceHooksConfig`:
 
-- `BeforeCreate`: Before an organization is created
-- `AfterCreate`: After an organization is created
-- `BeforeUpdate`: Before an organization is updated
-- `AfterUpdate`: After an organization is updated
-- `BeforeDelete`: Before an organization is deleted
-- `AfterDelete`: After an organization is deleted
+**Organizations** — `OrganizationServiceHooksConfig`:
 
-**Invitations**:
+| Hook           | Signature                                                         |
+| -------------- | ----------------------------------------------------------------- |
+| `BeforeCreate` | `func(ctx, actor *models.Actor, organization *Organization) error` |
+| `AfterCreate`  | `func(ctx, actor *models.Actor, organization *Organization) error` |
+| `BeforeUpdate` | `func(ctx, actor *models.Actor, organization *Organization) error` |
+| `AfterUpdate`  | `func(ctx, actor *models.Actor, organization *Organization) error` |
+| `BeforeDelete` | `func(ctx, actor *models.Actor, organization *Organization) error` |
+| `AfterDelete`  | `func(ctx, actor *models.Actor, organization *Organization) error` |
 
-- `BeforeCreate`: Before an invitation is created
-- `AfterCreate`: After an invitation is created
-- `BeforeUpdate`: Before an invitation is updated
-- `AfterUpdate`: After an invitation is updated
-- `BeforeDelete`: Before an invitation is deleted
-- `AfterDelete`: After an invitation is deleted
+**Members** — `OrganizationMemberServiceHooksConfig`:
 
-**Members**:
+| Hook           | Signature                                                      |
+| -------------- | -------------------------------------------------------------- |
+| `BeforeCreate` | `func(ctx, actor *models.Actor, member *OrganizationMember) error` |
+| `AfterCreate`  | `func(ctx, actor *models.Actor, member *OrganizationMember) error` |
+| `BeforeUpdate` | `func(ctx, actor *models.Actor, member *OrganizationMember) error` |
+| `AfterUpdate`  | `func(ctx, actor *models.Actor, member *OrganizationMember) error` |
+| `BeforeDelete` | `func(ctx, actor *models.Actor, member *OrganizationMember) error` |
+| `AfterDelete`  | `func(ctx, actor *models.Actor, member *OrganizationMember) error` |
 
-- `BeforeCreate`: Before a member is created
-- `AfterCreate`: After a member is created
-- `BeforeUpdate`: Before a member is updated
-- `AfterUpdate`: After a member is updated
-- `BeforeDelete`: Before a member is deleted
-- `AfterDelete`: After a member is deleted
+**Invitations** — `OrganizationInvitationServiceHooksConfig`:
 
-**Teams**:
+| Hook           | Signature                                                             |
+| -------------- | --------------------------------------------------------------------- |
+| `BeforeCreate` | `func(ctx, actor *models.Actor, invitation *OrganizationInvitation) error` |
+| `AfterCreate`  | `func(ctx, actor *models.Actor, invitation *OrganizationInvitation) error` |
+| `BeforeUpdate` | `func(ctx, actor *models.Actor, invitation *OrganizationInvitation) error` |
+| `AfterUpdate`  | `func(ctx, actor *models.Actor, invitation *OrganizationInvitation) error` |
 
-- `BeforeCreate`: Before a team is created
-- `AfterCreate`: After a team is created
-- `BeforeUpdate`: Before a team is updated
-- `AfterUpdate`: After a team is updated
-- `BeforeDelete`: Before a team is deleted
-- `AfterDelete`: After a team is deleted
+**Teams** — `OrganizationTeamServiceHooksConfig`:
 
-**Team Members**:
+| Hook           | Signature                                                    |
+| -------------- | ------------------------------------------------------------ |
+| `BeforeCreate` | `func(ctx, actor *models.Actor, team *OrganizationTeam) error` |
+| `AfterCreate`  | `func(ctx, actor *models.Actor, team *OrganizationTeam) error` |
+| `BeforeUpdate` | `func(ctx, actor *models.Actor, team *OrganizationTeam) error` |
+| `AfterUpdate`  | `func(ctx, actor *models.Actor, team *OrganizationTeam) error` |
+| `BeforeDelete` | `func(ctx, actor *models.Actor, team *OrganizationTeam) error` |
+| `AfterDelete`  | `func(ctx, actor *models.Actor, team *OrganizationTeam) error` |
 
-- `BeforeCreate`: Before a team member is created
-- `AfterCreate`: After a team member is created
-- `BeforeDelete`: Before a team member is deleted
-- `AfterDelete`: After a team member is deleted
+**Team Members** — `OrganizationTeamMemberServiceHooksConfig`:
+
+| Hook           | Signature                                                           |
+| -------------- | ------------------------------------------------------------------- |
+| `BeforeCreate` | `func(ctx, actor *models.Actor, member *OrganizationTeamMember) error` |
+| `AfterCreate`  | `func(ctx, actor *models.Actor, member *OrganizationTeamMember) error` |
+| `BeforeDelete` | `func(ctx, actor *models.Actor, member *OrganizationTeamMember) error` |
+| `AfterDelete`  | `func(ctx, actor *models.Actor, member *OrganizationTeamMember) error` |
 
 <Callout title="NOTE" type="info">
-  Database hooks are only supported in Library Mode.
+  Service hooks are only supported in Library Mode.
 </Callout>
 
 ---
 
 ## Plugin Capabilities
 
-This plugin doesn't provide any hooks and capabilities.
+Service hooks can be used to execute custom logic at various points in the organization, member, invitation, team, and team member lifecycle. See the [Service Hooks](#service-hooks) section for a full list of available hooks.
 
 ---
 
