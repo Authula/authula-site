@@ -1,0 +1,26 @@
+---
+title: New Update - v1.24.0
+date: 2026-07-21
+version: v1.24.0
+type: fix
+---
+
+## What's New
+
+- Fixes a vulnerability with session cookies whereby a renewal wouldn't rotate the session token before updating/replacing the user's existing session cookie. Now if a session is nearing it's expiry, the existing session will be deleted, a new session will be created and the new session's token will replace the user's session cookie thereby improving security greatly.
+
+---
+
+## Get Started
+
+### Standalone Mode
+
+```bash
+$ docker pull ghcr.io/authula/authula:v1.24.0
+```
+
+### Library Mode
+
+```bash
+$ go get github.com/Authula/authula@v1.24.0
+```
