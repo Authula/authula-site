@@ -143,8 +143,8 @@ This plugin creates the following database tables:
 
 | Field        | Type        | Key  | Description                                   |
 | ------------ | ----------- | ---- | --------------------------------------------- |
-| `id`         | `string`    | `PK` | Unique identifier for the organization        |
-| `owner_id`   | `string`    | `FK` | Reference to the organization owner (user)    |
+| `id`         | `uuid`      | `PK` | Unique identifier for the organization        |
+| `owner_id`   | `uuid`      | `FK` | Reference to the organization owner (user)    |
 | `name`       | `string`    | -    | Organization name                             |
 | `slug`       | `string`    | -    | URL-friendly organization identifier (unique) |
 | `logo`       | `string?`   | -    | Organization logo URL                         |
@@ -156,10 +156,10 @@ This plugin creates the following database tables:
 
 | Field             | Type        | Key  | Description                                   |
 | ----------------- | ----------- | ---- | --------------------------------------------- |
-| `id`              | `string`    | `PK` | Unique identifier for the invitation          |
+| `id`              | `uuid`      | `PK` | Unique identifier for the invitation          |
+| `organization_id` | `uuid`      | `FK` | Reference to the organization                 |
+| `inviter_id`      | `uuid`      | `FK` | Reference to the user who sent the invitation |
 | `email`           | `string`    | -    | Email address being invited                   |
-| `inviter_id`      | `string`    | `FK` | Reference to the user who sent the invitation |
-| `organization_id` | `string`    | `FK` | Reference to the organization                 |
 | `role`            | `string`    | -    | Role assigned to the invited member           |
 | `status`          | `string`    | -    | Invitation status                             |
 | `expires_at`      | `timestamp` | -    | Invitation expiration time                    |
@@ -169,9 +169,9 @@ This plugin creates the following database tables:
 
 | Field             | Type        | Key  | Description                             |
 | ----------------- | ----------- | ---- | --------------------------------------- |
-| `id`              | `string`    | `PK` | Unique identifier for the member record |
-| `organization_id` | `string`    | `FK` | Reference to the organization           |
-| `user_id`         | `string`    | `FK` | Reference to the user                   |
+| `id`              | `uuid`      | `PK` | Unique identifier for the member record |
+| `organization_id` | `uuid`      | `FK` | Reference to the organization           |
+| `user_id`         | `uuid`      | `FK` | Reference to the user                   |
 | `role`            | `string`    | -    | Member's role within the organization   |
 | `created_at`      | `timestamp` | -    | Record creation time                    |
 | `updated_at`      | `timestamp` | -    | Record last update time                 |
@@ -180,8 +180,8 @@ This plugin creates the following database tables:
 
 | Field             | Type        | Key  | Description                    |
 | ----------------- | ----------- | ---- | ------------------------------ |
-| `id`              | `string`    | `PK` | Unique identifier for the team |
-| `organization_id` | `string`    | `FK` | Reference to the organization  |
+| `id`              | `uuid`      | `PK` | Unique identifier for the team |
+| `organization_id` | `uuid`      | `FK` | Reference to the organization  |
 | `name`            | `string`    | -    | Team name                      |
 | `slug`            | `string`    | -    | URL-friendly identifier        |
 | `description`     | `string?`   | -    | Description                    |
@@ -193,9 +193,9 @@ This plugin creates the following database tables:
 
 | Field        | Type        | Key  | Description                                  |
 | ------------ | ----------- | ---- | -------------------------------------------- |
-| `id`         | `string`    | `PK` | Unique identifier for the team member record |
-| `team_id`    | `string`    | `FK` | Reference to the team                        |
-| `member_id`  | `string`    | `FK` | Reference to the organization member         |
+| `id`         | `uuid`      | `PK` | Unique identifier for the team member record |
+| `team_id`    | `uuid`      | `FK` | Reference to the team                        |
+| `member_id`  | `uuid`      | `FK` | Reference to the organization member         |
 | `created_at` | `timestamp` | -    | Record creation time                         |
 
 Migrations are automatically handled when the plugin is initialized.
@@ -208,8 +208,8 @@ The following hook configurations are available via `OrganizationsServiceHooksCo
 
 **Organizations** — `OrganizationServiceHooksConfig`:
 
-| Hook           | Signature                                                         |
-| -------------- | ----------------------------------------------------------------- |
+| Hook           | Signature                                                          |
+| -------------- | ------------------------------------------------------------------ |
 | `BeforeCreate` | `func(ctx, actor *models.Actor, organization *Organization) error` |
 | `AfterCreate`  | `func(ctx, actor *models.Actor, organization *Organization) error` |
 | `BeforeUpdate` | `func(ctx, actor *models.Actor, organization *Organization) error` |
@@ -219,8 +219,8 @@ The following hook configurations are available via `OrganizationsServiceHooksCo
 
 **Members** — `OrganizationMemberServiceHooksConfig`:
 
-| Hook           | Signature                                                      |
-| -------------- | -------------------------------------------------------------- |
+| Hook           | Signature                                                          |
+| -------------- | ------------------------------------------------------------------ |
 | `BeforeCreate` | `func(ctx, actor *models.Actor, member *OrganizationMember) error` |
 | `AfterCreate`  | `func(ctx, actor *models.Actor, member *OrganizationMember) error` |
 | `BeforeUpdate` | `func(ctx, actor *models.Actor, member *OrganizationMember) error` |
@@ -230,8 +230,8 @@ The following hook configurations are available via `OrganizationsServiceHooksCo
 
 **Invitations** — `OrganizationInvitationServiceHooksConfig`:
 
-| Hook           | Signature                                                             |
-| -------------- | --------------------------------------------------------------------- |
+| Hook           | Signature                                                                  |
+| -------------- | -------------------------------------------------------------------------- |
 | `BeforeCreate` | `func(ctx, actor *models.Actor, invitation *OrganizationInvitation) error` |
 | `AfterCreate`  | `func(ctx, actor *models.Actor, invitation *OrganizationInvitation) error` |
 | `BeforeUpdate` | `func(ctx, actor *models.Actor, invitation *OrganizationInvitation) error` |
@@ -239,8 +239,8 @@ The following hook configurations are available via `OrganizationsServiceHooksCo
 
 **Teams** — `OrganizationTeamServiceHooksConfig`:
 
-| Hook           | Signature                                                    |
-| -------------- | ------------------------------------------------------------ |
+| Hook           | Signature                                                      |
+| -------------- | -------------------------------------------------------------- |
 | `BeforeCreate` | `func(ctx, actor *models.Actor, team *OrganizationTeam) error` |
 | `AfterCreate`  | `func(ctx, actor *models.Actor, team *OrganizationTeam) error` |
 | `BeforeUpdate` | `func(ctx, actor *models.Actor, team *OrganizationTeam) error` |
@@ -250,8 +250,8 @@ The following hook configurations are available via `OrganizationsServiceHooksCo
 
 **Team Members** — `OrganizationTeamMemberServiceHooksConfig`:
 
-| Hook           | Signature                                                           |
-| -------------- | ------------------------------------------------------------------- |
+| Hook           | Signature                                                              |
+| -------------- | ---------------------------------------------------------------------- |
 | `BeforeCreate` | `func(ctx, actor *models.Actor, member *OrganizationTeamMember) error` |
 | `AfterCreate`  | `func(ctx, actor *models.Actor, member *OrganizationTeamMember) error` |
 | `BeforeDelete` | `func(ctx, actor *models.Actor, member *OrganizationTeamMember) error` |
