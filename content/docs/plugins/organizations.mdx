@@ -106,13 +106,14 @@ Each endpoint in this plugin requires the caller to have a specific hardcoded pe
 
 ### Members
 
-| HTTP Method | Route Path                                             | Description   | Required Permission            |
-| ----------- | ------------------------------------------------------ | ------------- | ------------------------------ |
-| `POST`      | `/organizations/{organization_id}/members`             | Add member    | `organizations:members:add`    |
-| `GET`       | `/organizations/{organization_id}/members`             | List members  | `organizations:members:list`   |
-| `GET`       | `/organizations/{organization_id}/members/{member_id}` | Get member    | `organizations:members:read`   |
-| `PATCH`     | `/organizations/{organization_id}/members/{member_id}` | Update member | `organizations:members:update` |
-| `DELETE`    | `/organizations/{organization_id}/members/{member_id}` | Remove member | `organizations:members:remove` |
+| HTTP Method | Route Path                                                   | Description           | Required Permission            |
+| ----------- | ------------------------------------------------------------ | --------------------- | ------------------------------ |
+| `POST`      | `/organizations/{organization_id}/members`                   | Add member            | `organizations:members:add`    |
+| `GET`       | `/organizations/{organization_id}/members`                   | List members          | `organizations:members:list`   |
+| `GET`       | `/organizations/{organization_id}/members/{member_id}`       | Get member            | `organizations:members:read`   |
+| `GET`       | `/organizations/{organization_id}/members/by-user/{user_id}` | Get member by user ID | `organizations:members:read`   |
+| `PATCH`     | `/organizations/{organization_id}/members/{member_id}`       | Update member         | `organizations:members:update` |
+| `DELETE`    | `/organizations/{organization_id}/members/{member_id}`       | Remove member         | `organizations:members:remove` |
 
 ### Teams
 
