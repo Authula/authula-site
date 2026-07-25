@@ -100,9 +100,10 @@ Each endpoint in this plugin requires the caller to have a specific hardcoded pe
 | `POST`      | `/organizations/{organization_id}/invitations`                        | Create invitation | `organizations:invitations:create` |
 | `GET`       | `/organizations/{organization_id}/invitations`                        | List invitations  | `organizations:invitations:list`   |
 | `GET`       | `/organizations/{organization_id}/invitations/{invitation_id}`        | Get invitation    | `organizations:invitations:read`   |
-| `PATCH`     | `/organizations/{organization_id}/invitations/{invitation_id}`        | Revoke invitation | `organizations:invitations:revoke` |
-| `POST`      | `/organizations/{organization_id}/invitations/{invitation_id}/accept` | Accept invitation | `None`                             |
-| `POST`      | `/organizations/{organization_id}/invitations/{invitation_id}/reject` | Reject invitation | `None`                             |
+| `GET`       | `/organizations/{organization_id}/invitations/{invitation_id}/verify` | Verify invitation | `None`                             |
+| `PATCH`     | `/organizations/{organization_id}/invitations/{invitation_id}/revoke` | Revoke invitation | `organizations:invitations:revoke` |
+| `PATCH`     | `/organizations/{organization_id}/invitations/{invitation_id}/accept` | Accept invitation | `None`                             |
+| `PATCH`     | `/organizations/{organization_id}/invitations/{invitation_id}/reject` | Reject invitation | `None`                             |
 
 ### Members
 
