@@ -12,12 +12,14 @@ import HooksSection from "@/components/sections/HooksSection";
 import PluginSection from "@/components/sections/PluginSection";
 import SponsorsSection from "@/components/sections/SponsorsSection";
 import AnnouncementBanner from "@/components/shared/AnnouncementBanner";
+import ProjectsShowcaseSection from "@/components/sections/ProjectsShowcaseSection";
 
 export default function HomePage() {
   return (
     <main className="flex flex-col flex-1">
       <AnnouncementBanner />
       <HeroSection />
+      <ProjectsShowcaseSection />
       <ArchitectureSection />
       <ConfigurationSection />
       <FeaturesSection />
