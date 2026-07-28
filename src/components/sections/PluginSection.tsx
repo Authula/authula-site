@@ -9,7 +9,6 @@ import {
   Zap,
   Radio,
   Webhook,
-  Shield,
   Key,
   Mail,
   Globe,
@@ -17,15 +16,27 @@ import {
   Cookie,
   Blocks,
   Timer,
+  Shield,
+  Building2,
+  Link as LinkIcon,
+  Smartphone,
+  KeyRound,
+  Database,
 } from "lucide-react";
 
 const builtInPlugins = [
-  { name: "Email/Password", icon: Mail, color: "text-amber-500" },
-  { name: "OAuth2", icon: Globe, color: "text-green-500" },
   { name: "CSRF", icon: Cookie, color: "text-purple-500" },
   { name: "JWT", icon: Fingerprint, color: "text-yellow-500" },
   { name: "Bearer", icon: Key, color: "text-cyan-500" },
-  { name: "Rate Limit", icon: Timer, color: "text-cyan-500" },
+  { name: "Email/Password", icon: Mail, color: "text-amber-500" },
+  { name: "Magic Link", icon: LinkIcon, color: "text-sky-500" },
+  { name: "TOTP", icon: Smartphone, color: "text-rose-500" },
+  { name: "OAuth2", icon: Globe, color: "text-green-500" },
+  { name: "Secondary Storage", icon: Database, color: "text-blue-500" },
+  { name: "Rate Limit", icon: Timer, color: "text-teal-500" },
+  { name: "Access Control (RBAC)", icon: Shield, color: "text-indigo-500" },
+  { name: "Organizations", icon: Building2, color: "text-violet-500" },
+  { name: "API Key", icon: KeyRound, color: "text-orange-500" },
 ];
 
 const capabilities = [
@@ -86,7 +97,7 @@ export default function PluginSection() {
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-6">
             Built-in Plugins
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {builtInPlugins.map((plugin) => {
               const Icon = plugin.icon;
               return (

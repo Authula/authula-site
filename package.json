@@ -5,7 +5,7 @@
   "packageManager": "pnpm@11.17.0",
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "next dev --port 3003",
     "start": "next start",
     "postinstall": "fumadocs-mdx",
     "lint": "biome check",
