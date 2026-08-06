@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 import { Marquee } from "../animations/marquee";
 
 type MarqueeDataList = {
@@ -15,8 +16,9 @@ export default function MarqueeShowcase() {
       url: "https://cliqrelay.com",
     },
     {
-      image: "/images/projects/orbflow-logo.svg",
+      image: "/images/projects/cliqrelay-logo.png",
       name: "CliqRelay",
+      url: "https://cliqrelay.com",
     },
   ];
 
