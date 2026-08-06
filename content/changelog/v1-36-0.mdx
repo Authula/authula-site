@@ -1,0 +1,42 @@
+---
+title: New Update - v1.36.0
+date: 2026-08-06
+version: v1.36.0
+type: fix
+---
+
+## What's New
+
+- Make `organization_members.role` the single source of truth for tenant
+  permissions, closing the cross-tenant privilege escalation (BOLA/IDOR)
+  vectors in the organizations and api-key plugins.
+- Access control service: add `GetRolePermissionsByName`/`GetRoleWeightByName`;
+  remove `ValidateRoleAssignment` from the interface.
+- Org auth: export `AuthorizeOrganizationAccess` and enforce `organization_id`
+  claim equality for machines and users; fail closed when no member row exists.
+- Org use cases: authorize per-request via the actor's membership role
+  permissions (wildcard-aware) or token scopes for machine actors.
+- Purge org handlers' writes to global access_control_user_roles; keep the
+  assign-role hook for platform-level use only.
+- Member/invitation writes are machine-forbidden and gated by role weight
+  (heavier target => `403`, missing target => `400`); RemoveMember gains weight
+  and owner-protection guards.
+- Add `RequireActor(ActorUser)` to member/invitation write routes.
+- api-key: org-owned key Create/Update require the requester's membership
+  in the org and requested key permissions to be a subset of their per-org permissions.
+
+---
+
+## Get Started
+
+### Standalone Mode
+
+```bash
+$ docker pull ghcr.io/authula/authula:v1.36.0
+```
+
+### Library Mode
+
+```bash
+$ go get github.com/Authula/authula@v1.36.0
+```
