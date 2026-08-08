@@ -13,14 +13,14 @@ export default function AnnouncementBanner() {
         <div className="relative flex flex-col sm:flex-row items-center justify-center text-center min-h-10 gap-1 sm:gap-2">
           <div className="flex flex-col sm:flex-row items-center gap-2 font-medium text-blue-700 dark:text-blue-300">
             <span className="block text-base">
-              We are live on{" "}
+              Loved by hundreds of developers.
               <Link
-                href={ENV_CONFIG.productHuntLink}
+                href={ENV_CONFIG.sponsorUsLink}
                 className="text-base underline"
                 target="_blank"
                 rel="noreferrer noopener"
               >
-                Product Hunt!
+                ❤️ Support Us
               </Link>
             </span>
           </div>
