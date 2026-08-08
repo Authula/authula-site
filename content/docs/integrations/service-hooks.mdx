@@ -1,0 +1,105 @@
+---
+title: Service Hooks
+description: Configure service hooks to run custom logic before and after certain business logic.
+---
+
+Authula provides powerful hooks to let you run custom logic before and after service operations for users, accounts, sessions, verifications and more. This allows you to integrate with your own systems, perform validations, trigger side effects, or log activity.
+
+## Config
+
+```go
+type ServiceHook[T any] func(*T) error
+
+type CoreServiceHooksConfig struct {
+	Users         *ServiceHooks[User]
+	Accounts      *ServiceHooks[Account]
+	Sessions      *ServiceHooks[Session]
+	Verifications *ServiceHooks[Verification]
+}
+
+type ServiceHooks[T any] struct {
+	beforeCreate []ServiceHook[T]
+	afterCreate  []ServiceHook[T]
+	beforeUpdate []ServiceHook[T]
+	afterUpdate  []ServiceHook[T]
+}
+
+func (h *ServiceHooks[T]) RegisterBeforeCreate(fn ServiceHook[T]) {
+	h.beforeCreate = append(h.beforeCreate, fn)
+}
+
+func (h *ServiceHooks[T]) RegisterAfterCreate(fn ServiceHook[T]) {
+	h.afterCreate = append(h.afterCreate, fn)
+}
+
+func (h *ServiceHooks[T]) RegisterBeforeUpdate(fn ServiceHook[T]) {
+	h.beforeUpdate = append(h.beforeUpdate, fn)
+}
+
+func (h *ServiceHooks[T]) RegisterAfterUpdate(fn ServiceHook[T]) {
+	h.afterUpdate = append(h.afterUpdate, fn)
+}
+
+func (h *ServiceHooks[T]) BeforeCreateHooks() []ServiceHook[T] {
+	return h.beforeCreate
+}
+
+func (h *ServiceHooks[T]) AfterCreateHooks() []ServiceHook[T] {
+	return h.afterCreate
+}
+
+func (h *ServiceHooks[T]) BeforeUpdateHooks() []ServiceHook[T] {
+	return h.beforeUpdate
+}
+
+func (h *ServiceHooks[T]) AfterUpdateHooks() []ServiceHook[T] {
+	return h.afterUpdate
+}
+```
+
+## Example:
+
+Suppose you want to log every time a user is created in your system. You can register an `AfterCreate` hook on the `ServiceHooks[User]`.
+
+```go
+import (
+	"log"
+
+	authula "github.com/Authula/authula"
+	authulaconfig "github.com/Authula/authula/config"
+	authulamodels "github.com/Authula/authula/models"
+)
+
+func logUserCreation(user *authulamodels.User) error {
+	log.Printf("New user created - ID: %s, Email: %s", user.ID, user.Email)
+	return nil
+}
+
+config := authulaconfig.NewConfig(
+	authulaconfig.WithCoreServiceHooks(authulamodels.CoreServiceHooksConfig{
+		Users: &authulamodels.ServiceHooks[authulamodels.User]{},
+	}),
+)
+
+config.CoreServiceHooks.Users.RegisterAfterCreate(logUserCreation)
+```
+
+## Available Service Hooks
+
+You can hook into the following events:
+
+- **Users**: `RegisterBeforeCreate`, `RegisterAfterCreate`, `RegisterBeforeUpdate`, `RegisterAfterUpdate`
+- **Accounts**: `RegisterBeforeCreate`, `RegisterAfterCreate`, `RegisterBeforeUpdate`, `RegisterAfterUpdate`
+- **Sessions**: `RegisterBeforeCreate`, `RegisterAfterCreate`, `RegisterBeforeUpdate`, `RegisterAfterUpdate`
+- **Verifications**: `RegisterBeforeCreate`, `RegisterAfterCreate`
+
+Each hook receives a pointer to the entity being created/updated. For "before" hooks, you can make direct modifications to the entity before it is stored. For "after" hooks, you can read the entity to perform side effects or log activity. You can return an error from any hook to abort the operation.
+
+## How to Integrate
+
+1. **Implement your hook functions** matching the `ServiceHook[T]` signature, where `T` is the entity type (e.g. `User`).
+2. **Register them** on the appropriate service hooks struct using its `Register*` method.
+3. **Pass the hooks struct** to the matching field in the `CoreServiceHooksConfig` when creating your Authula config.
+4. **Return an error** from your hook to abort the operation, or `nil` to continue.
+
+See the [Config Reference](/docs/reference/config) for the full structure and all available hooks.

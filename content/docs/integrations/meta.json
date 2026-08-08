@@ -4,7 +4,7 @@
     "custom-routes",
     "middleware",
     "hooks",
-    "database-hooks",
+    "service-hooks",
     "plugins"
   ]
 }
