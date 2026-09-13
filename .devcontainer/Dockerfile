@@ -6,8 +6,8 @@ USER root
 WORKDIR /root
 
 RUN apt update && apt install -y \
-  apt-transport-https ca-certificates gnupg lsb-release iputils-ping net-tools \
-  curl wget git zip unzip less zsh jq lsof ripgrep
+    apt-transport-https ca-certificates gnupg lsb-release iputils-ping net-tools \
+    curl wget git zip unzip less zsh jq lsof ripgrep
 
 ENV HOME="/root"
 
@@ -23,8 +23,8 @@ RUN git config --global --add safe.directory "/workspaces/authula-site"
 # Oh my zsh
 # --------------------------------------
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" -- \
-  -t robbyrussell \
-  -p git -p node -p npm
+    -t robbyrussell \
+    -p git -p node -p npm
 
 ENV SHELL=/bin/zsh
 # --------------------------------------
@@ -32,7 +32,7 @@ ENV SHELL=/bin/zsh
 # --------------------------------------
 # NPM
 # --------------------------------------
-RUN npm i -g pnpm@11.24.0
+RUN npm i -g pnpm@12.4.1
 # --------------------------------------
 
 # --------------------------------------
@@ -41,6 +41,6 @@ RUN npm i -g pnpm@11.24.0
 RUN mkdir -p ~/.ssh
 RUN touch ~/.ssh/config
 RUN echo "Host github.com" >> ~/.ssh/config \
-  && echo "    IdentityFile ~/.ssh/id_ed25519" >> ~/.ssh/config
-RUN touch ~/.ssh/id_ed25519
+    && echo "    IdentityFile ~/.ssh/id_ed25519" >> ~/.ssh/config
+RUN touch ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
 # --------------------------------------
