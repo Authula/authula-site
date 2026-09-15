@@ -112,7 +112,12 @@ The Email plugin doesn't have any hooks and capabilities.
 
 ### Environment Variables
 
-Configure your provider credentials via environment variables:
+**Core:**
+
+```txt title=".env"
+EMAIL_PROVIDER="smtp" # Options: "smtp", "resend"
+FROM_ADDRESS="noreply@example.com"
+```
 
 **SMTP Provider:**
 
