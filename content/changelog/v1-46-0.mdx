@@ -1,0 +1,32 @@
+---
+title: New Update - v1.46.0
+date: 2026-09-12
+version: v1.46.0
+type: improvement
+---
+
+## What's New
+
+- feat: Add configurable cookie Domain for cross-subdomain sessions
+- fix: Session cookie lifetime, renewal, CSRF echo, and current-session GET /me and sign-out
+- chore: Add pre-commit git hooks and install tools via make setup
+- chore: Updated AGENTS.md
+- chore: Added a new agent skill to productivity
+- chore: Added root SKILL.md file for agent skills
+- fix: EnvBaseURL was not being applied in options.go unless WithBaseURL was used
+
+---
+
+## Get Started
+
+### Standalone Mode
+
+```bash
+$ docker pull ghcr.io/authula/authula:v1.46.0
+```
+
+### Library Mode
+
+```bash
+$ go get github.com/Authula/authula@v1.46.0
+```
