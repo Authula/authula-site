@@ -132,7 +132,7 @@ Options:
       --help               Show this help
 
 Examples:
-  pnpm run update-npm-deps apps/web/package.json
+  pnpm run update-npm-deps package.json
   pnpm run update-npm-deps --hours 72 --dry-run package.json
   pnpm run update-npm-deps --exclude typescript --exclude "@types/*"`;
 
