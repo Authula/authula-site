@@ -16,7 +16,7 @@ import ProjectsShowcaseSection from "@/components/sections/ProjectsShowcaseSecti
 
 export default function HomePage() {
   return (
-    <main className="flex flex-col flex-1">
+    <main className="flex flex-col flex-1 home-sections">
       <AnnouncementBanner />
       <HeroSection />
       <ProjectsShowcaseSection />
@@ -27,7 +27,7 @@ export default function HomePage() {
       <HooksSection />
       <PluginSection />
       <DeveloperExperienceSection />
-      <SponsorsSection />
+      {/* <SponsorsSection /> */}
       <CommunitySection />
       <WaitlistSection />
       <ContactUsSection />

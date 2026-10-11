@@ -176,3 +176,10 @@
 .custom-container {
   @apply w-full max-w-7xl mx-auto px-4 md:px-6 py-24;
 }
+
+/* Home page alternating section backgrounds.
+   Hero is section:nth-of-type(1), so it is excluded automatically.
+   Even sections get the tint. */
+.home-sections > section:nth-of-type(even) {
+  background-color: color-mix(in oklab, var(--color-blue-500) 5%, transparent);
+}
