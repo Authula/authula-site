@@ -1,0 +1,185 @@
+---
+title: OpenTelemetry Plugin
+description: Send Authula traces, request and runtime metrics, and optional logs to an OpenTelemetry collector.
+---
+
+## Overview
+
+The OpenTelemetry (OTel) plugin sends information about Authula requests and runtime to an OpenTelemetry collector. It can send traces, metrics, and—when enabled—logs.
+
+### Features
+
+- **Request tracing** — Follows requests across services and records their results.
+- **Request metrics** — Measures how long requests take.
+- **Runtime metrics** — Optionally reports Go runtime information.
+- **Log export** — Optionally sends Authula logs to the collector.
+- **Multiple output options** — Send data over OTLP, print it to stdout, or turn export off.
+- **Fail-open requests** — Telemetry problems do not stop requests. Invalid setup or exporter errors do stop server startup.
+
+---
+
+## Configuration
+
+### Standalone Mode
+
+The plugin is off by default. Turn it on with `enabled = true`.
+
+```toml
+[plugins.otel]
+enabled = true
+service_name = "authula-service"
+exporter = "otlp"
+endpoint = "localhost:4318"
+insecure = true
+logs_enabled = true
+```
+
+For a collector that requires authentication, add its authorization header. Header values are used as written; they are not read from environment variables. To avoid storing secrets in `config.toml`, set them at deployment time or use the OpenTelemetry environment settings.
+
+```toml
+[plugins.otel]
+headers = { authorization = "<your-ingestion-api-key>" }
+```
+
+### Library Mode
+
+```go
+import (
+	otelplugin "github.com/Authula/authula/plugins/otel"
+	oteltypes "github.com/Authula/authula/plugins/otel/types"
+)
+
+otel := otelplugin.New(oteltypes.OTelPluginConfig{
+	Enabled:     true,
+	ServiceName: "authula-service",
+	Exporter:    oteltypes.ExporterOTLP,
+	Endpoint:    "localhost:4318",
+	Insecure:    true,
+	LogsEnabled: true,
+})
+```
+
+### Configuration Options
+
+| Key               | Type   | Default   | Description                                                                                           |
+| ----------------- | ------ | --------- | ----------------------------------------------------------------------------------------------------- |
+| `enabled`         | bool   | `false`   | Turns the plugin on.                                                                                  |
+| `service_name`    | string | `authula` | Service name shown in telemetry. An empty value uses `OTEL_SERVICE_NAME`, then `authula`.             |
+| `exporter`        | string | `otlp`    | Output: `otlp`, `stdout`, or `none`.                                                                  |
+| `protocol`        | string | empty     | `http`, `grpc`, or empty to use the environment setting or HTTP/protobuf.                             |
+| `endpoint`        | string | empty     | Collector address as `host:port`, such as `localhost:4318`. Do not include a scheme or path.          |
+| `insecure`        | bool   | `false`   | Allows an unencrypted connection when true. False leaves the environment setting in effect.           |
+| `headers`         | map    | empty     | Headers sent to the collector. An empty map allows environment settings to apply.                     |
+| `traces_enabled`  | bool   | `true`    | Sends request traces.                                                                                 |
+| `metrics_enabled` | bool   | `true`    | Sends request metrics.                                                                                |
+| `logs_enabled`    | bool   | `false`   | Sends records written through Authula's core logger.                                                  |
+| `runtime_metrics` | bool   | `true`    | Sends Go runtime metrics when metrics are active.                                                     |
+| `sample_ratio`    | float  | unset     | Fraction of traces to sample, from `0` to `1`. When unset, the OpenTelemetry SDK settings apply.      |
+| `trust_proxy`     | bool   | `false`   | Uses forwarded headers to determine request and server addresses. Enable only behind trusted proxies. |
+
+### Environment Settings
+
+For most options, the plugin setting takes priority over the OpenTelemetry environment setting, which takes priority over the SDK default. Some details:
+
+- **Service name:** config → `OTEL_SERVICE_NAME` → `authula`.
+- **Collector address:** A configured address is used for all signals. Otherwise, each signal checks its own endpoint environment variable, then `OTEL_EXPORTER_OTLP_ENDPOINT`, then its default. Config takes `host:port`; environment settings take a full URL, such as `https://collector:4318`.
+- **Protocol:** config → `OTEL_EXPORTER_OTLP_PROTOCOL` → HTTP/protobuf. Signal-specific protocol variables and HTTP/JSON are not supported.
+- **Headers:** A non-empty `headers` map replaces environment-provided headers. An empty map allows them through.
+- **Connection security:** `insecure = true` turns off transport security. `false` leaves environment settings in control, so it cannot force a secure connection if the environment requests plaintext.
+- **Sampling:** A configured ratio from `0` to `1` controls how many traces are sampled. When omitted, the SDK environment settings apply.
+
+The plugin checks settings at startup. It will not start with an unknown exporter or protocol, a sampling ratio outside `0`–`1`, or an endpoint containing `://`. For a plain-HTTP collector, use a bare `host:port` and set `insecure = true`.
+
+Other exporter settings—such as batch size, export interval, timeouts, compression, and certificates—can be set with the OpenTelemetry SDK environment variables, including `OTEL_BSP_*`, `OTEL_METRIC_EXPORT_INTERVAL`, and `OTEL_EXPORTER_OTLP_*`.
+
+### Export Options
+
+| Exporter | Traces                 | Metrics                | Logs                   |
+| -------- | ---------------------- | ---------------------- | ---------------------- |
+| `otlp`   | Sends to the collector | Sends to the collector | Sends to the collector |
+| `stdout` | Prints to stdout       | Prints to stdout       | Prints to stdout       |
+| `none`   | Off                    | Off                    | Off                    |
+
+`none` disables export even if individual signals are enabled. `stdout` ignores collector address, connection, and header settings. If both tracing and metrics are disabled, request hooks are not installed. Logs are off by default.
+
+---
+
+## API Reference
+
+The plugin does not add HTTP endpoints. It observes requests through Authula's request lifecycle.
+
+---
+
+## Database Schema
+
+The plugin does not create database tables.
+
+---
+
+## Plugin Capabilities
+
+The plugin records request data when requests start and finish. It also covers OPTIONS preflight requests and requests that take Authula's bypass paths, such as disabled-path responses.
+
+### Traces
+
+Each trace describes one request. Its name uses the HTTP method and matched route, such as `GET /api/auth/me`. If no route matches, only the method is used. The plugin does not use the raw URL as the route name.
+
+Incoming W3C `traceparent` headers connect requests to an existing trace. Handlers can use the request context to create child spans. The plugin records the method, route, URL path and scheme, response status, client and server addresses, and user agent. It also records the actor type and ID when present.
+
+The query string is never recorded because Authula may put verification, magic-link, and invitation tokens there. Forwarded headers affect recorded addresses only when `trust_proxy = true`. Unknown HTTP methods are shown as `_OTHER`.
+
+Only responses with status `500` or higher are marked as errors. Client errors (4xx) are not. The final response status comes from Authula's request context or response writer, and defaults to `200` if neither provides one.
+
+### Metrics
+
+The plugin records request duration in seconds as `http.server.request.duration`. The measurement includes the HTTP method, route, response status, and URL scheme. Errors with status `500` or higher also include an error type. Unmatched routes are labeled `unmatched`; unknown methods are labeled `_OTHER`.
+
+OPTIONS preflight requests are not included in this metric. There is no separate request-count metric; use the histogram's count to see how many requests were measured.
+
+When runtime metrics are enabled, the plugin also reports Go runtime information. This requires metrics to be active and an exporter other than `none`. If runtime metrics fail to start, the plugin logs a warning and continues.
+
+### Logs
+
+Set `logs_enabled = true` to send Authula core logs to the collector. Logs still go to their normal destination as well. The plugin includes each log's key-value fields and level.
+
+Log export respects `logger.level` independently of the normal logger. The shipped configuration uses `debug`; set `logger.level = "info"` in production to keep debug logs out of the collector. Unknown or empty level names are treated as `info`.
+
+Custom loggers work through Authula's logger wrapper. A logger passed directly to the plugin that does not support adding a log sink produces a warning and cannot export logs. Direct `slog.*` calls go to stderr but do not reach the collector. Logs also do not include trace IDs because the core logger has no request context.
+
+### Startup and Shutdown
+
+The plugin loads and checks its settings before creating telemetry exporters. Invalid settings or an exporter that cannot be created stop server startup. A runtime-metrics startup problem or a logger that cannot accept the log sink only produces a warning.
+
+When the server shuts down, the plugin detaches the log sink and flushes and closes its providers. Shutdown is safe to call more than once and has a five-second timeout.
+
+The plugin uses its own OpenTelemetry providers rather than changing process-wide settings. This keeps separate plugin instances isolated, but means code using the global OpenTelemetry tracer is not captured. Spans created from the request context are captured.
+
+---
+
+## Security Recommendations
+
+- Keep query strings out of telemetry; they may contain sign-in or invitation tokens.
+- Treat collector headers as secrets. Set credentials at deployment time rather than committing them to config files.
+- Enable `trust_proxy` only when requests come through trusted proxies.
+- Use `insecure = true` only when a trusted collector requires unencrypted HTTP.
+- Set `logger.level = "info"` in production if debug logs should not be exported.
+
+---
+
+## Troubleshooting
+
+- **The server will not start:** Check that the exporter and protocol names are valid, the sample ratio is between `0` and `1`, and the endpoint is `host:port` with no scheme.
+- **No data reaches the collector:** Check `enabled`, the relevant signal setting, and that `exporter` is not `none`. Logs also require `logs_enabled = true`.
+- **A plain-HTTP collector cannot connect:** Set `insecure = true` and keep the endpoint as `host:port` without a scheme.
+- **Collector authentication fails:** Check the configured or environment-provided headers. A non-empty config map overrides environment headers.
+- **Runtime metrics are missing:** They require active metrics and an exporter other than `none`. A failure to start them is logged as a warning.
+- **Logs are missing:** Check `logs_enabled` and whether the logger supports the plugin's log sink. Direct `slog` calls are not exported.
+- **Recorded addresses look wrong:** Check `trust_proxy` and the forwarded headers supplied by your trusted proxy.
+
+---
+
+## Notes
+
+- Traces, metrics, and logs share the configured service name and service version `1.0.0`.
+- Telemetry hooks do not stop requests, but invalid settings and exporter setup failures prevent the server from starting.
+- The plugin's libraries are included in the server binary even when the plugin is disabled. It uses no exporters, background work, or hooks at runtime while disabled.

@@ -11,6 +11,7 @@
     "magic-link",
     "oauth2",
     "organizations",
+    "otel",
     "ratelimit",
     "secondary-storage",
     "session",
