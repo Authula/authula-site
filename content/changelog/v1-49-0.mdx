@@ -1,0 +1,32 @@
+---
+title: New Update - v1.49.0
+date: 2026-11-03
+version: v1.49.0
+type: feature
+---
+
+## What's New
+
+- chore: Updated to Go v1.27
+- feat: Implemented otel plugin
+- refactor: use generics for plugin factory registration
+- fix: run opted-in hooks on router bypass paths
+- feat: propagate hook context and add completion stage
+- fix: map ErrInsufficientPermissions to 403 in access-control
+- fix: Organization logo is now cleared when update sends explicit null
+
+---
+
+## Get Started
+
+### Standalone Mode
+
+```bash
+$ docker pull ghcr.io/authula/authula:v1.49.0
+```
+
+### Library Mode
+
+```bash
+$ go get github.com/Authula/authula@v1.49.0
+```
