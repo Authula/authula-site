@@ -15,6 +15,8 @@ const title = "Authula — Authentication for Go, embedded or standalone";
 const description =
   "An open-source authentication platform you can embed in Go or run as a standalone auth server. Composable plugins, typed APIs and your data staying in your database.";
 
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.authula.dev"),
   title,
