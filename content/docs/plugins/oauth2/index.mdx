@@ -5,13 +5,15 @@ description: Enable OAuth2 authentication for your applications with ease.
 
 ## Overview
 
-The OAuth2 plugin for Authula allows you to integrate third-party OAuth2 providers into your authentication flow, enabling users to sign in using their accounts from popular services like Google, GitHub, and Discord.
+The OAuth2 plugin for Authula allows you to integrate third-party OAuth2 providers into your authentication flow, enabling users to sign in using their accounts from popular services like Google, GitHub, and Discord. Custom OAuth2/OIDC providers can also be configured with their own endpoints and field mappings.
 
 ### Features
 
 - **Third-Party Authentication** — Allow users to authenticate using existing accounts from OAuth2-enabled providers
-- **Multiple Provider Support** — Configure and enable multiple OAuth2 providers simultaneously (Google, GitHub, Discord)
+- **Multiple Provider Support** — Configure and enable multiple built-in or custom OAuth2 providers simultaneously
 - **Automatic Token Management** — Handles authorization requests, token exchanges, and user profile retrieval
+- **PKCE Protection** — Uses S256 PKCE for Discord, GitHub, Google, and custom providers
+- **Account Linking** — Links provider accounts to existing users safely, with verified-email checks for anonymous requests
 - **Security Best Practices** — Built-in support for secure credential management via environment variables
 
 ### Supported Providers
@@ -19,18 +21,20 @@ The OAuth2 plugin for Authula allows you to integrate third-party OAuth2 provide
 - **[Discord](discord.mdx)** — Enable sign-in with Discord accounts
 - **[GitHub](github.mdx)** — Allow users to authenticate using their GitHub credentials
 - **[Google](google.mdx)** — Integrate Google OAuth2 for seamless user authentication
+- **Custom OAuth2/OIDC** — Connect any provider that supports the authorization code flow
 
-Each provider guide includes step-by-step instructions for obtaining credentials, configuring the provider, and testing the integration.
+Each built-in provider guide includes step-by-step instructions for obtaining credentials, configuring the provider, and testing the integration.
 
 ---
 
 ## Configuration
 
-`Standalone Mode:`
+### Standalone Mode
 
 ```toml
 [plugins.oauth2]
 enabled = true
+http_timeout = "10s"
 
 # SECURITY NOTE: It is recommended to set the 'client_secret' for each provider via their
 # respective environment variables as shown in the .env.example file rather than hardcoding it here.
@@ -42,10 +46,12 @@ redirect_url = "http://localhost:8080/auth/oauth2/callback/google"
 scopes = []
 ```
 
-`Library Mode:`
+### Library Mode
 
 ```go
 import (
+  "os"
+
   oauth2plugin "github.com/Authula/authula/plugins/oauth2"
   oauth2plugintypes "github.com/Authula/authula/plugins/oauth2/types"
 )
@@ -63,6 +69,78 @@ oauth2plugin.New(oauth2plugintypes.OAuth2PluginConfig{
 })
 ```
 
+### Configuration Options
+
+| Option         | Type            | Default | Description                                                             |
+| -------------- | --------------- | ------- | ----------------------------------------------------------------------- |
+| `enabled`      | `bool`          | —       | Enable the OAuth2 plugin                                                |
+| `http_timeout` | `time.Duration` | —       | Timeout for token and user-info requests. Responses are capped at 1 MiB |
+
+### Provider Options
+
+| Option                 | Type       | Default                                            | Description                                                         |
+| ---------------------- | ---------- | -------------------------------------------------- | ------------------------------------------------------------------- |
+| `enabled`              | `bool`     | `true`                                             | Enable this provider                                                |
+| `client_id`            | `string`   | —                                                  | OAuth2 client ID                                                    |
+| `client_secret`        | `string`   | —                                                  | OAuth2 client secret                                                |
+| `redirect_url`         | `string`   | `<base_url><base_path>/oauth2/callback/<provider>` | Callback URL registered with the provider                           |
+| `scopes`               | `[]string` | Built-in provider scopes                           | Scopes requested during authorization                               |
+| `auth_url`             | `string`   | Built-in provider endpoint                         | Authorization endpoint. Required for custom providers               |
+| `token_url`            | `string`   | Built-in provider endpoint                         | Token endpoint. Required for custom providers                       |
+| `user_info_url`        | `string`   | Built-in provider endpoint                         | User-info endpoint. Required for custom providers                   |
+| `user_id_field`        | `string`   | Provider-specific                                  | Field containing the provider account ID                            |
+| `email_field`          | `string`   | Provider-specific                                  | Field containing the user's email                                   |
+| `name_field`           | `string`   | Provider-specific                                  | Field containing the user's display name                            |
+| `picture_field`        | `string`   | Provider-specific                                  | Field containing the user's profile picture                         |
+| `email_verified_field` | `string`   | Provider-specific                                  | Field indicating whether the provider has verified the user's email |
+
+Built-in scopes and endpoints are used when the config omits them.
+
+### Custom Providers
+
+Custom providers are registered when `auth_url`, `token_url`, and `user_info_url` are all set. Endpoints must use HTTPS, except when connecting to localhost.
+
+```toml
+[plugins.oauth2.providers.okta]
+client_id = "your-client-id"
+client_secret = "your-client-secret"
+redirect_url = "https://api.example.com/auth/oauth2/callback/okta"
+auth_url = "https://example.okta.com/oauth2/v1/authorize"
+token_url = "https://example.okta.com/oauth2/v1/token"
+user_info_url = "https://example.okta.com/oauth2/v1/userinfo"
+scopes = ["openid", "email", "profile"]
+user_id_field = "sub"
+email_field = "email"
+name_field = "name"
+picture_field = "picture"
+email_verified_field = "email_verified"
+```
+
+### Environment Variables
+
+Google, GitHub, and Discord also read credentials from the following environment variables:
+
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
+- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`
+- `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`
+
+Environment values override only `client_id` and `client_secret`; other configuration fields are kept. An explicit `redirect_url` always wins. Setting only one variable of a pair is an error at startup.
+
+### Route Mappings
+
+Register the OAuth2 routes so the session plugin can resolve an existing user during account linking:
+
+```toml
+[[route_mappings]]
+paths = [
+  "GET:/oauth2/authorize/{provider}",
+  "GET:/oauth2/callback/{provider}",
+]
+plugins = ["session.auth.optional"]
+```
+
+The plugin relies on the core `User`, `Account`, `Session`, and `Token` services. The session plugin is required to issue the session cookie; the OAuth2 plugin sets the actor and session values but does not write the cookie itself.
+
 ---
 
 ## API Reference
@@ -71,6 +149,49 @@ oauth2plugin.New(oauth2plugintypes.OAuth2PluginConfig{
 | ----------- | ------------------------------ | ----------------------------------------- |
 | `GET`       | `/oauth2/authorize/{provider}` | Initiate OAuth2 authorization flow        |
 | `GET`       | `/oauth2/callback/{provider}`  | Handle OAuth2 callback and token exchange |
+
+### Account Linking
+
+The provider account identity is authoritative:
+
+1. The callback resolves the account by `(provider, provider_account_id)` first.
+2. If the account exists, the callback signs in the account owner. The provider email is never used to switch users.
+3. If the account does not exist and the request is authenticated, the account is linked to the signed-in user.
+4. If the account does not exist and the request is anonymous, an existing local user is linked only when the provider asserts the email is verified.
+5. An unverified provider email never auto-links. If a local user already owns that email, the callback returns an error instead of signing in.
+
+A provider account owned by another user returns `409 Conflict`. A user can have multiple provider accounts, and each `(provider_id, account_id)` pair is unique.
+
+### PKCE and Flow Cookies
+
+Discord, GitHub, Google, and custom providers use S256 PKCE. The authorize step returns a signed verifier cookie and includes `code_challenge` in the authorization URL. The callback requires the verifier and passes it to the token exchange.
+
+The plugin sets three short-lived flow cookies:
+
+| Cookie               | Purpose                                             |
+| -------------------- | --------------------------------------------------- |
+| `oauth2_state`       | Signed state bound to the provider and flow purpose |
+| `oauth2_redirect_to` | Signed redirect destination                         |
+| `oauth2_verifier`    | Signed PKCE verifier                                |
+
+All flow cookies are `HttpOnly`, use `Path=/`, and expire after five minutes. `Secure`, `Domain`, and `SameSite` come from the session configuration, not from `X-Forwarded-Proto`. Cookies are cleared on every terminal callback path, including errors and already-authenticated links.
+
+### Redirects
+
+`redirect_to` accepts relative paths and absolute URLs on trusted origins (`security.trusted_origins`). Protocol-relative URLs, non-HTTP(S) schemes, credentials, and untrusted hosts are rejected. The signed value is validated again before the `Location` header is set.
+
+### Responses
+
+The callback returns the user and a safe session view. It never returns the session token, IP address, or user agent. The session cookie is the supported credential.
+
+| Status | Meaning                                                           |
+| ------ | ----------------------------------------------------------------- |
+| `401`  | Provider denied access, or authentication required                |
+| `404`  | Unknown provider                                                  |
+| `409`  | Account conflict or account linked to another user                |
+| `422`  | Invalid state, code, PKCE verifier, email, or provider account ID |
+| `502`  | Provider request failed                                           |
+| `500`  | Internal error                                                    |
 
 ---
 
@@ -91,6 +212,9 @@ This plugin doesn't have any hooks and capabilities.
 - **Use Environment Variables for Secrets** — Never hardcode `client_secret` values in your TOML configuration. Use environment variables as shown in the `.env.example` file.
 - **Secure Redirect URLs** — Ensure redirect URLs use HTTPS in production to prevent token interception.
 - **Validate Provider Scopes** — Only request the minimum scopes necessary for your application to reduce security exposure.
+- **Restrict Redirect Destinations** — Add trusted frontend origins to `security.trusted_origins`, and never accept arbitrary redirect targets from untrusted input.
+- **Use Secure Cookies** — Set `secure = true` and an appropriate `SameSite` value in the session configuration in production.
+- **Rely on Verified Emails** — Only auto-link provider accounts to existing users when the provider asserts the email is verified, or require the user to sign in first.
 
 ---
 
