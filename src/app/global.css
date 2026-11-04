@@ -41,6 +41,36 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Authula homepage palette */
+  --color-home-bg: var(--home-bg);
+  --color-home-bg-deep: var(--home-bg-deep);
+  --color-home-panel: var(--home-panel);
+  --color-home-panel-raised: var(--home-panel-raised);
+  --color-home-panel-hover: var(--home-panel-hover);
+  --color-home-line: var(--home-line);
+  --color-home-line-strong: var(--home-line-strong);
+  --color-home-text: var(--home-text);
+  --color-home-muted: var(--home-muted);
+  --color-home-muted-strong: var(--home-muted-strong);
+  --color-home-accent: var(--home-accent);
+  --color-home-accent-bright: var(--home-accent-bright);
+  --color-home-accent-deep: var(--home-accent-deep);
+  --color-home-accent-soft: var(--home-accent-soft);
+  --color-home-accent-line: var(--home-accent-line);
+  --color-home-code-bg: var(--home-code-bg);
+  --color-home-code-keyword: var(--home-code-keyword);
+  --color-home-code-string: var(--home-code-string);
+  --color-home-code-comment: var(--home-code-comment);
+  --color-home-code-number: var(--home-code-number);
+  --color-home-code-text: var(--home-code-text);
+  --color-home-code-punct: var(--home-code-punct);
+
+  --font-mono: var(--font-jetbrains);
+
+  --animate-hero-in: hero-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-dash-flow: dash-flow 3.2s linear infinite;
+
   --animate-grid: grid 15s linear infinite;
   @keyframes grid {
     0% {
@@ -78,8 +108,50 @@
   }
 }
 
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -48;
+  }
+}
+
 :root {
   --radius: 0.625rem;
+
+  /* Authula homepage colour tokens */
+  --home-bg: #05070c;
+  --home-bg-deep: #030509;
+  --home-panel: #090e17;
+  --home-panel-raised: #0c131f;
+  --home-panel-hover: #0e1725;
+  --home-line: rgba(125, 150, 185, 0.16);
+  --home-line-strong: rgba(125, 150, 185, 0.3);
+  --home-text: #f2f6fc;
+  --home-muted: #9aa8bd;
+  --home-muted-strong: #c2ccda;
+  --home-accent: #3b82f6;
+  --home-accent-bright: #60a5fa;
+  --home-accent-deep: #2563eb;
+  --home-accent-soft: rgba(59, 130, 246, 0.12);
+  --home-accent-line: rgba(59, 130, 246, 0.32);
+  --home-code-bg: #060a11;
+  --home-code-keyword: #7dd3fc;
+  --home-code-string: #a5b4fc;
+  --home-code-comment: #74849a;
+  --home-code-number: #93c5fd;
+  --home-code-text: #dbe5f3;
+  --home-code-punct: #8fa0b7;
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -156,6 +228,48 @@
   }
 }
 
+/* Fumadocs' home layout hard-codes --fd-layout-width: 1400px on #nd-home-layout.
+   Keep the sticky header aligned with .home-container (1280px). This rule is
+   intentionally unlayered so it wins over the utility class. */
+#nd-home-layout {
+  --fd-layout-width: 1280px;
+}
+
+/* Fumadocs owns the header's links/buttons, so give them the same high-contrast
+   focus indicator used elsewhere on the page. */
+#nd-nav :is(a, button, input):focus-visible {
+  outline: 2px solid var(--home-accent-bright);
+  outline-offset: 2px;
+}
+
+/* Scroll-reveal fail-safe.
+   Without JS, motion's inline opacity: 0 must never hide content. With JS, the
+   early inline script adds .js; hidden nodes are made visibility:hidden (which
+   also removes them from the tab order) until motion or the 2500ms failsafe
+   marks them data-reveal="in". */
+html:not(.js) [data-reveal="out"] {
+  opacity: 1 !important;
+  transform: none !important;
+  visibility: visible !important;
+}
+
+html.js [data-reveal="out"] {
+  visibility: hidden;
+}
+
+html.js [data-reveal="in"] {
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.js [data-reveal="out"],
+  html.js [data-reveal="in"] {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -177,9 +291,298 @@
   @apply w-full max-w-7xl mx-auto px-4 md:px-6 py-24;
 }
 
-/* Home page alternating section backgrounds.
-   Hero is section:nth-of-type(1), so it is excluded automatically.
-   Even sections get the tint. */
-.home-sections > section:nth-of-type(even) {
-  background-color: color-mix(in oklab, var(--color-blue-500) 5%, transparent);
+@layer components {
+  /* Page frame and inner content widths (§2.3) */
+  .home-container {
+    width: 100%;
+    max-width: 1280px;
+    margin-inline: auto;
+    padding-inline: clamp(1.25rem, 4vw, 3.125rem);
+  }
+
+  .home-content {
+    width: 100%;
+    max-width: 1180px;
+    margin-inline: auto;
+  }
+
+  /* Decorative backgrounds — always place on an absolutely positioned layer
+     with aria-hidden and pointer-events-none. */
+  .home-dots {
+    background-image: radial-gradient(rgba(96, 165, 250, 0.22) 1px, transparent 1px);
+    background-size: 16px 16px;
+    -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 45%, #000 65%, transparent 100%);
+    mask-image: radial-gradient(ellipse 60% 55% at 50% 45%, #000 65%, transparent 100%);
+  }
+
+  .home-grid-lines {
+    background-image:
+      linear-gradient(to right, rgba(125, 150, 185, 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(125, 150, 185, 0.07) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 55%, transparent 100%);
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 55%, transparent 100%);
+  }
+
+  .home-noise {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    opacity: 0.025;
+    pointer-events: none;
+  }
+
+  /* Hero load-in: opacity + 12px rise. Stagger by setting the delay custom
+     property or by combining with .home-hero-in-1 / -2 / -3. */
+  .home-hero-in {
+    animation: hero-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: var(--home-hero-delay, 0ms);
+  }
+
+  .home-hero-in-1 {
+    --home-hero-delay: 80ms;
+  }
+
+  .home-hero-in-2 {
+    --home-hero-delay: 160ms;
+  }
+
+  .home-hero-in-3 {
+    --home-hero-delay: 240ms;
+  }
+
+  /* Diagram connector flow. Apply to an SVG path with stroke-dasharray set
+     (the class supplies the dash pattern and the offset animation). */
+  .home-dash-flow {
+    stroke-dasharray: 4 8;
+    animation: dash-flow 3.2s linear infinite;
+  }
+}
+
+/* Changelog release body. Scoped so the docs and blog prose keep their
+   existing Fumadocs theme. */
+.changelog-prose {
+  --tw-prose-body: var(--home-muted);
+  --tw-prose-headings: var(--home-text);
+  --tw-prose-bold: var(--home-text);
+  --tw-prose-links: var(--home-accent-bright);
+  --tw-prose-bullets: var(--home-accent-line);
+  --tw-prose-counters: var(--home-muted-strong);
+  --tw-prose-hr: var(--home-line);
+  --tw-prose-quotes: var(--home-muted-strong);
+  --tw-prose-quote-borders: var(--home-line-strong);
+  --tw-prose-code: var(--home-text);
+  --tw-prose-th-borders: var(--home-line);
+  --tw-prose-td-borders: var(--home-line);
+  --color-fd-card: var(--home-code-bg);
+  --color-fd-border: var(--home-line);
+  --color-fd-muted: var(--home-panel);
+  --color-fd-muted-foreground: var(--home-code-comment);
+  --color-fd-primary: var(--home-accent-bright);
+  --color-fd-secondary: var(--home-panel);
+  --color-fd-secondary-foreground: var(--home-text);
+  --color-fd-accent: var(--home-panel-hover);
+  --color-fd-accent-foreground: var(--home-text);
+  --color-fd-ring: var(--home-accent-bright);
+
+  color: var(--home-muted);
+}
+
+.changelog-prose > :first-child {
+  margin-top: 0;
+}
+
+.changelog-prose > :last-child {
+  margin-bottom: 0;
+}
+
+.changelog-prose :is(h1, h2, h3, h4) {
+  color: var(--home-text);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.changelog-prose h2 {
+  margin-top: 2.4em;
+  margin-bottom: 0.85em;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--home-line);
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.changelog-prose h3 {
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.changelog-prose h4 {
+  margin-top: 1.75em;
+  margin-bottom: 0.5em;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.changelog-prose p {
+  margin-top: 1.15em;
+  margin-bottom: 1.15em;
+  line-height: 1.75;
+}
+
+.changelog-prose :is(ul, ol) {
+  margin-top: 1.1em;
+  margin-bottom: 1.1em;
+}
+
+.changelog-prose li {
+  margin-top: 0.4em;
+  margin-bottom: 0.4em;
+  line-height: 1.7;
+}
+
+.changelog-prose li::marker {
+  color: var(--tw-prose-bullets);
+}
+
+.changelog-prose ol > li::marker {
+  color: var(--tw-prose-counters);
+}
+
+.changelog-prose strong {
+  color: var(--home-text);
+  font-weight: 600;
+}
+
+.changelog-prose a {
+  color: var(--home-accent-bright);
+  text-decoration-color: var(--home-accent-line);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition:
+    color 150ms ease,
+    text-decoration-color 150ms ease;
+}
+
+.changelog-prose a:hover {
+  color: var(--home-text);
+  text-decoration-color: var(--home-accent-bright);
+}
+
+.changelog-prose a:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid var(--home-accent-bright);
+  outline-offset: 2px;
+}
+
+.changelog-prose :not(pre) > code {
+  padding: 0.14em 0.36em;
+  border: 1px solid var(--home-line);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--home-text);
+  font-size: 0.86em;
+  font-weight: 400;
+}
+
+.changelog-prose blockquote {
+  padding: 0.95rem 1.1rem;
+  border-inline-start: 2px solid var(--home-accent-line);
+  border-radius: 0 10px 10px 0;
+  background: var(--home-accent-soft);
+  color: var(--home-muted-strong);
+  font-style: normal;
+  font-weight: 400;
+  quotes: none;
+}
+
+.changelog-prose blockquote p:first-of-type::before,
+.changelog-prose blockquote p:last-of-type::after {
+  content: none;
+}
+
+.changelog-prose blockquote > :first-child {
+  margin-top: 0;
+}
+
+.changelog-prose blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.changelog-prose hr {
+  border-color: var(--home-line);
+}
+
+.changelog-prose table {
+  overflow: hidden;
+  border: 1px solid var(--home-line);
+  border-radius: 12px;
+  background: var(--home-panel-raised);
+}
+
+.changelog-prose thead {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.changelog-prose :is(th, td) {
+  padding: 0.7rem 0.9rem;
+}
+
+.changelog-prose th {
+  color: var(--home-text);
+  font-weight: 600;
+}
+
+.changelog-prose figure.shiki {
+  margin-top: 1.75rem;
+  margin-bottom: 1.75rem;
+  border: 1px solid var(--home-line);
+  border-radius: 12px;
+  background: var(--home-code-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.changelog-prose figure.shiki pre {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--home-code-text);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+
+.changelog-prose figure.shiki pre code {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  font-weight: 400;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .home-hero-in,
+  .home-dash-flow {
+    animation: none !important;
+  }
 }
