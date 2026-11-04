@@ -17,7 +17,6 @@
     "@radix-ui/react-label": "^2.1.17",
     "@radix-ui/react-scroll-area": "^1.4.0",
     "@radix-ui/react-slot": "^1.5.0",
-    "@tanstack/highlight": "^1.2.11",
     "@tanstack/react-form": "^1.33.5",
     "@upstash/ratelimit": "^2.2.0",
     "@upstash/redis": "^1.40.0",

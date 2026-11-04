@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { ArrowRight, ArrowUpRight, BookOpen, Star } from "lucide-react";
 
@@ -19,7 +20,10 @@ import { getGitHubRepoStars } from "@/services/server";
 type DestinationIconName = "github" | "discord" | "docs";
 
 const cardClassName =
-  "group flex min-w-0 items-center gap-4 rounded-[14px] border border-home-line bg-home-bg/40 p-4 transition-all hover:border-home-accent-line hover:bg-home-panel-hover focus-visible:ring-2 focus-visible:ring-home-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel-raised focus-visible:outline-none active:translate-y-px";
+  "group flex min-w-0 items-center gap-4 rounded-[14px] border border-home-line bg-home-bg/40 p-4 transition-all hover:border-home-accent-line hover:bg-home-panel-hover focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel-raised focus-visible:outline-none active:translate-y-px";
+
+const starChipClassName =
+  "inline-flex h-5 min-w-[72px] items-center justify-center gap-1 rounded-full border border-home-accent-line bg-home-accent-soft px-2 font-mono text-xs text-home-accent-bright";
 
 function DestinationIcon({ icon }: { icon: DestinationIconName }) {
   if (icon === "github") {
@@ -33,13 +37,37 @@ function DestinationIcon({ icon }: { icon: DestinationIconName }) {
   return <BookOpen className="size-5" aria-hidden="true" />;
 }
 
-export async function Community() {
-  const stars = await getGitHubRepoStars();
-  const starCount =
-    stars === null
-      ? null
-      : `${new Intl.NumberFormat("en-US").format(stars)} ${stars === 1 ? "star" : "stars"}`;
+function StarChipFallback() {
+  // Reserve the pill's footprint so the destination row does not shift when the
+  // streamed star count arrives.
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex h-5 min-w-[72px] rounded-full border border-home-line bg-home-panel"
+    />
+  );
+}
 
+async function GitHubStarChip() {
+  const stars = await getGitHubRepoStars();
+
+  if (stars === null) {
+    // No count available: keep the empty slot so the row stays stable without
+    // showing an empty pill.
+    return <span aria-hidden="true" className="inline-flex h-5 min-w-[72px]" />;
+  }
+
+  const starCount = `${new Intl.NumberFormat("en-US").format(stars)} ${stars === 1 ? "star" : "stars"}`;
+
+  return (
+    <span className={starChipClassName}>
+      <Star className="size-3 fill-current" aria-hidden="true" />
+      {starCount}
+    </span>
+  );
+}
+
+export function Community() {
   return (
     <SectionShell id="community" ariaLabelledBy="community-heading" tone="panel" rails>
       <div className="home-content">
@@ -64,7 +92,7 @@ export async function Community() {
                     Need to talk?{" "}
                     <Link
                       href={communityContact.href}
-                      className="font-medium text-home-accent-bright underline-offset-4 transition-colors hover:text-home-text hover:underline focus-visible:ring-2 focus-visible:ring-home-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel-raised focus-visible:outline-none"
+                      className="font-medium text-home-accent-bright underline-offset-4 transition-colors hover:text-home-text hover:underline focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel-raised focus-visible:outline-none"
                     >
                       {communityContact.label}
                     </Link>
@@ -77,12 +105,12 @@ export async function Community() {
             <div className="flex flex-col p-6 md:p-10 lg:justify-center">
               <Reveal delay={0.1}>
                 <div className="flex flex-col gap-3">
-                  <p className="font-mono text-[11px] tracking-[0.14em] text-home-code-comment uppercase">
+                  <p className="font-mono text-xs tracking-[0.14em] text-home-code-comment uppercase">
                     Where to find us
                   </p>
 
                   {communityDestinations.map((destination) => {
-                    const showStars = destination.showStars && starCount !== null;
+                    const showStars = destination.showStars === true;
                     const body = (
                       <>
                         <span
@@ -98,10 +126,9 @@ export async function Community() {
                               {destination.name}
                             </span>
                             {showStars ? (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-home-accent-line bg-home-accent-soft px-2 py-0.5 font-mono text-[10px] text-home-accent-bright">
-                                <Star className="size-3 fill-current" aria-hidden="true" />
-                                {starCount}
-                              </span>
+                              <Suspense fallback={<StarChipFallback />}>
+                                <GitHubStarChip />
+                              </Suspense>
                             ) : null}
                           </span>
 

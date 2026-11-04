@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { motion, useReducedMotion } from "motion/react";
 
@@ -16,6 +16,14 @@ export type RevealProps = {
 export function Reveal({ children, delay = 0, y = 16, className }: RevealProps) {
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
+
+  // Signal to the root layout failsafe that client-side reveals initialized, so
+  // it leaves scroll-triggered animations alone instead of force-revealing.
+  useEffect(() => {
+    if (typeof window !== "undefined" && "IntersectionObserver" in window) {
+      document.documentElement.dataset.revealReady = "true";
+    }
+  }, []);
 
   // Keep the SSR and hydration markup identical. Reduced-motion visibility is
   // handled by the motion-reduce utilities, so the initial style must not

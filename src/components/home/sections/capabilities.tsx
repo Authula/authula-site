@@ -1,3 +1,5 @@
+import { ChevronDown, ChevronRight } from "lucide-react";
+
 import { capabilityFlow, capabilityGroups, sectionCopy } from "@/data/home";
 
 import { Reveal } from "../reveal";
@@ -17,7 +19,7 @@ export function CapabilitiesSection() {
 
       <Reveal delay={0.06}>
         <div className="mt-10 overflow-hidden rounded-[20px] border border-home-line bg-home-panel p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] md:mt-14 md:p-6">
-          <div className="flex items-center justify-between gap-3 font-mono text-[11px] tracking-[0.14em] uppercase">
+          <div className="flex items-center justify-between gap-3 text-xs tracking-[0.14em] uppercase">
             <span className="text-home-muted">Sign-in flow</span>
             <span className="flex items-center gap-2 text-home-accent-bright">
               <span aria-hidden="true" className="size-1.5 rounded-full bg-home-accent" />
@@ -29,7 +31,7 @@ export function CapabilitiesSection() {
             {capabilityFlow.title}
           </h3>
 
-          <ol className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+          <ol className="mt-5 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
             {capabilityFlow.steps.map((step, index) => {
               const isLast = index === capabilityFlow.steps.length - 1;
 
@@ -40,34 +42,60 @@ export function CapabilitiesSection() {
                 >
                   {isLast ? null : (
                     <>
+                      {/* Stacked layout: line from this step down to the next. */}
                       <span
                         aria-hidden="true"
-                        className="absolute top-[3.1rem] bottom-[-0.85rem] left-[1.7rem] w-px border-l border-dashed border-home-line-strong sm:hidden"
+                        className="absolute top-12 -bottom-3 left-7.5 w-px border-l border-dashed border-home-line-strong sm:hidden"
                       />
-                      <span
-                        aria-hidden="true"
-                        className="absolute top-[1.9rem] left-full hidden h-px w-4 border-t border-dashed border-home-line-strong lg:block"
-                      />
+
+                      {/* Two-column layout: right arrow for the first and third steps. */}
+                      {(index === 0 || index === 2) && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute top-1/2 -right-4 hidden h-px w-4 -translate-y-1/2 items-center justify-end border-t border-dashed border-home-line-strong sm:flex"
+                        >
+                          <ChevronRight className="-mr-1 size-3 text-home-accent/70" />
+                        </span>
+                      )}
+
+                      {/* Two-column layout: the second step turns down to the next row. */}
+                      {index === 1 && (
+                        <>
+                          <span
+                            aria-hidden="true"
+                            className="absolute top-full left-1/2 hidden h-4 -translate-x-1/2 flex-col items-center sm:flex lg:hidden"
+                          >
+                            <span className="h-2 border-l border-dashed border-home-line-strong" />
+                            <ChevronDown className="-mt-1 size-3 text-home-accent/70" />
+                          </span>
+                          <span
+                            aria-hidden="true"
+                            className="absolute top-1/2 -right-4 hidden h-px w-4 -translate-y-1/2 items-center justify-end border-t border-dashed border-home-line-strong lg:flex"
+                          >
+                            <ChevronRight className="-mr-1 size-3 text-home-accent/70" />
+                          </span>
+                        </>
+                      )}
                     </>
                   )}
 
-                  <span className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border border-home-line bg-home-panel-raised font-mono text-[11px] text-home-muted-strong">
+                  <span className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border border-home-line bg-home-panel-raised text-xs text-home-muted-strong">
                     {String(index + 1).padStart(2, "0")}
                   </span>
 
-                  <div className="min-w-0 md:pt-0.5">
+                  <div className="min-w-0 sm:pt-0.5">
                     <span
                       className={
                         isLast
-                          ? "font-mono text-[13px] text-home-accent-bright"
-                          : "text-[14px] text-home-text"
+                          ? "text-[13px] font-medium text-home-accent-bright"
+                          : "text-[14px] font-medium text-home-text"
                       }
                     >
                       {step.label}
                     </span>
-                    <span className="mt-1 block font-mono text-[10px] leading-relaxed break-words text-home-muted">
-                      {step.meta}
-                    </span>
+                    <p className="mt-1 text-xs leading-relaxed text-home-muted">
+                      {step.description}
+                    </p>
                   </div>
                 </li>
               );
@@ -91,12 +119,6 @@ export function CapabilitiesSection() {
                   <h3 className="text-sm font-semibold tracking-[-0.01em] text-home-text">
                     {group.title}
                   </h3>
-                  <span
-                    aria-hidden="true"
-                    className="ml-auto font-mono text-[10px] text-home-muted"
-                  >
-                    {String(group.items.length).padStart(2, "0")}
-                  </span>
                 </div>
 
                 <ul className="divide-y divide-home-line/70">
@@ -105,7 +127,7 @@ export function CapabilitiesSection() {
 
                     return (
                       <li key={item.name} className="flex gap-3 py-2.5 last:pb-0.5">
-                        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-[8px] border border-home-line bg-white/[0.02] text-home-muted">
+                        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-xl border border-home-line bg-white/2 text-home-muted">
                           <ItemIcon className="size-3.5" aria-hidden="true" />
                         </span>
                         <div className="min-w-0 flex-1">

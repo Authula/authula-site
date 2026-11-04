@@ -36,13 +36,10 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <>
-      <noscript>
-        <style>{`[data-reveal="out"]{opacity:1!important;transform:none!important}`}</style>
-      </noscript>
       <div
         id="main-content"
         tabIndex={-1}
-        className="flex flex-col flex-1 bg-home-bg text-home-text outline-none"
+        className="flex scroll-mt-24 flex-col flex-1 bg-home-bg text-home-text outline-none focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg"
       >
         <Hero />
         <Deployment />

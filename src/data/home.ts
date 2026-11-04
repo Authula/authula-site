@@ -21,6 +21,7 @@ import {
   Network,
   Plug,
   Radio,
+  Server,
   Settings2,
   ShieldCheck,
   Terminal,
@@ -28,8 +29,6 @@ import {
   Webhook,
   type LucideIcon,
 } from "lucide-react";
-
-import type { SnippetKey } from "@/data/home-snippets";
 
 import { CONSTANTS } from "@/constants/constants";
 
@@ -44,10 +43,15 @@ export type SectionCopy = {
   readonly description: string;
 };
 
-export type HomeCodeSample = {
-  readonly filename?: string;
-  readonly language: "go" | "toml" | "bash" | "text";
-  readonly snippetKey: SnippetKey;
+export type HeroProof = {
+  readonly title: string;
+  readonly description: string;
+  readonly icon: LucideIcon;
+};
+
+export type ComparisonRow = {
+  readonly label: string;
+  readonly value: string;
 };
 
 export type DeploymentMode = {
@@ -55,8 +59,8 @@ export type DeploymentMode = {
   readonly label: string;
   readonly description: string;
   readonly highlights: readonly string[];
+  readonly comparison: readonly ComparisonRow[];
   readonly link: HomeLink;
-  readonly codeSample: HomeCodeSample;
   readonly icon: LucideIcon;
 };
 
@@ -73,10 +77,33 @@ export type CapabilityGroup = {
   readonly items: readonly Capability[];
 };
 
+export type CapabilityFlowStep = {
+  readonly label: string;
+  readonly description: string;
+};
+
+export type ArchitectureOutcome = {
+  readonly id: "users" | "data" | "providers";
+  readonly title: string;
+  readonly description: string;
+  readonly icon: LucideIcon;
+};
+
+export type ArchitectureFlowStep = {
+  readonly id: "clients" | "authula" | "infrastructure";
+  readonly label: string;
+  readonly description: string;
+};
+
 export type DeveloperExperienceFeature = {
   readonly title: string;
   readonly description: string;
   readonly icon: LucideIcon;
+};
+
+export type DeveloperLifecycleStep = {
+  readonly title: string;
+  readonly description: string;
 };
 
 export type ProductionPillar = {
@@ -115,6 +142,11 @@ export type PluginExplainer = {
   readonly icon: LucideIcon;
 };
 
+export type PluginLifecycleStep = {
+  readonly label: string;
+  readonly description: string;
+};
+
 export type GetStartedStep = {
   readonly id: string;
   readonly title: string;
@@ -122,6 +154,12 @@ export type GetStartedStep = {
   readonly command?: string;
   readonly language?: string;
   readonly link?: HomeLink;
+};
+
+export type GetStartedPath = {
+  readonly label: string;
+  readonly description: string;
+  readonly href: string;
 };
 
 export const heroContent = {
@@ -136,6 +174,24 @@ export const heroContent = {
     external: true,
   },
 } as const;
+
+export const heroProofs: readonly HeroProof[] = [
+  {
+    title: "Embed in Go",
+    description: "Mount the handler in your own service and keep auth in process.",
+    icon: Code2,
+  },
+  {
+    title: "Run standalone",
+    description: "Start one auth service for every app and language.",
+    icon: Server,
+  },
+  {
+    title: "Your data stays in your database",
+    description: "Authula uses the database, email and providers you already run.",
+    icon: Database,
+  },
+];
 
 export const sectionCopy = {
   deployment: {
@@ -155,7 +211,7 @@ export const sectionCopy = {
   plugins: {
     title: "Extend the core without forking it.",
     description:
-      "A small Go interface gives plugins routes, hooks, migrations and a shared service registry. Compose what you need and keep the core untouched.",
+      "A small Go interface gives plugins routes, hooks, migrations and shared services. Add what you need and keep the core untouched.",
   },
   developerExperience: {
     title: "Feels like Go.",
@@ -185,20 +241,21 @@ export const deploymentModes: readonly DeploymentMode[] = [
     label: "Library mode",
     description: "Authula lives inside your Go application.",
     highlights: [
-      "Mount auth.Handler() on net/http or your router",
-      "Configure in Go with typed options",
-      "Call core and plugin APIs directly",
-      "Customise plugins at compile time",
-      "Keep auth in the same process as your app",
+      "Auth runs in the same process as your app",
+      "No extra network hop for auth checks",
+      "Configure with typed Go options",
+      "Call core and plugin services directly from Go",
+      "Add or remove plugins when you build",
+    ],
+    comparison: [
+      { label: "Where it runs", value: "Inside your Go process" },
+      { label: "How you configure it", value: "In Go, with typed options" },
+      { label: "How you deploy it", value: "Ship it with your app" },
+      { label: "Best for", value: "Teams that already run a Go API" },
     ],
     link: {
       label: "Read the library guide",
       href: "/docs/guides/library-mode",
-    },
-    codeSample: {
-      filename: "main.go",
-      language: "go",
-      snippetKey: "libraryMain",
     },
     icon: Code2,
   },
@@ -208,19 +265,23 @@ export const deploymentModes: readonly DeploymentMode[] = [
     description: "Authula runs as its own authentication service.",
     highlights: [
       "One service for every frontend and backend",
-      "Configure with config.toml and environment variables",
-      "Deploy the official container image",
-      "Scale auth independently from your apps",
-      "Keep application code out of the auth layer",
+      "Update auth without redeploying your apps",
+      "Scale auth on its own",
+      "Keep auth code out of your application",
+      "Configure with a file and environment variables",
+    ],
+    comparison: [
+      { label: "Where it runs", value: "As its own service" },
+      {
+        label: "How you configure it",
+        value: "A config file and environment variables",
+      },
+      { label: "How you deploy it", value: "The official container image" },
+      { label: "Best for", value: "Apps in any language that need one auth service" },
     ],
     link: {
       label: "Read the installation guide",
       href: "/docs/get-started/installation",
-    },
-    codeSample: {
-      filename: "config.toml",
-      language: "toml",
-      snippetKey: "standaloneToml",
     },
     icon: Terminal,
   },
@@ -228,27 +289,30 @@ export const deploymentModes: readonly DeploymentMode[] = [
 
 export const deploymentFooterLine = "Both modes share the same plugins, routes and APIs.";
 
-export const capabilityFlow = {
+export const capabilityFlow: {
+  readonly title: string;
+  readonly steps: readonly CapabilityFlowStep[];
+} = {
   title: "A complete sign-in flow",
   steps: [
     {
-      label: "Sign up",
-      meta: "POST /api/auth/email-password/sign-up",
+      label: "Create account",
+      description: "The user signs up with an email and password, or an OAuth provider.",
     },
     {
       label: "Verify email",
-      meta: "GET /api/auth/email-password/verify-email",
+      description: "Authula sends a link and confirms the address before sign-in.",
     },
     {
-      label: "Session",
-      meta: "Set-Cookie: authula.session_token",
+      label: "Session issued",
+      description: "The user gets a session cookie and a refresh token.",
     },
     {
-      label: "Get the current user",
-      meta: "GET /api/auth/me",
+      label: "Load current user",
+      description: "Your app reads the signed-in user and claims from the request.",
     },
   ],
-} as const;
+};
 
 export const capabilityGroups: readonly CapabilityGroup[] = [
   {
@@ -366,35 +430,93 @@ export const capabilityGroups: readonly CapabilityGroup[] = [
   },
 ];
 
+export const architectureOutcomes: readonly ArchitectureOutcome[] = [
+  {
+    id: "users",
+    title: "Your users",
+    description: "Accounts, sessions and profiles stay in your database, under your schema.",
+    icon: Users,
+  },
+  {
+    id: "data",
+    title: "Your data",
+    description: "Authula reads and writes through the database you already run and back up.",
+    icon: Database,
+  },
+  {
+    id: "providers",
+    title: "Your providers",
+    description: "Email, OAuth and storage connect with credentials you control.",
+    icon: Globe,
+  },
+];
+
+export const architectureFlow: readonly ArchitectureFlowStep[] = [
+  {
+    id: "clients",
+    label: "Clients",
+    description: "Web, mobile or backend apps",
+  },
+  {
+    id: "authula",
+    label: "Authula",
+    description: "Sign-in, sessions and access checks",
+  },
+  {
+    id: "infrastructure",
+    label: "Your infrastructure",
+    description: "Your database, email and OAuth providers",
+  },
+];
+
+export const architectureCaption =
+  "Library mode runs Authula inside your Go process. Standalone mode runs the same core as its own service.";
+
+export const architectureLink: HomeLink = {
+  label: "Read the architecture overview",
+  href: "/docs/introduction/architecture",
+};
+
 export const pluginExplainers: readonly PluginExplainer[] = [
   {
     title: "Runs in process",
-    description: "Plugins initialise with the database, logger, event bus and service registry.",
+    description: "Plugins start with the core and share its database, logger and event bus.",
     icon: Plug,
   },
   {
-    title: "Service registry",
-    description: "Plugins publish and consume services through a shared registry.",
+    title: "Shared services",
+    description: "Plugins offer capabilities to each other and to your application.",
     icon: Network,
   },
   {
     title: "Dependencies stay explicit",
-    description: "Declare plugin dependencies and migrations; Authula resolves the lifecycle.",
+    description: "Declare what a plugin needs and Authula starts things in the right order.",
     icon: GitBranch,
   },
   {
     title: "Your endpoints",
-    description: "Register routes and custom authentication middleware from a plugin.",
+    description: "A plugin can add routes, middleware and background work.",
     icon: Webhook,
   },
 ];
 
-export const pluginLifecycle: readonly string[] = [
-  "Metadata",
-  "Config",
-  "Init",
-  "Routes / Hooks / Migrations",
-  "Close",
+export const pluginLifecycleSteps: readonly PluginLifecycleStep[] = [
+  {
+    label: "Implement the interface",
+    description: "Write a Go type that matches the plugin interface.",
+  },
+  {
+    label: "Declare dependencies",
+    description: "List the plugins and migrations your plugin needs.",
+  },
+  {
+    label: "Register the plugin",
+    description: "Add it to the plugin list when you build Authula.",
+  },
+  {
+    label: "Authula connects it",
+    description: "Routes, hooks and migrations are wired into the core.",
+  },
 ];
 
 export const pluginGuide: HomeLink = {
@@ -402,32 +524,45 @@ export const pluginGuide: HomeLink = {
   href: "/docs/guides/server-plugins",
 };
 
-export const pluginCodeSample: HomeCodeSample = {
-  filename: "plugin.go",
-  language: "go",
-  snippetKey: "pluginInterface",
-};
-
 export const developerExperienceFeatures: readonly DeveloperExperienceFeature[] = [
   {
-    title: "Typed request context",
-    description: "Read the authenticated actor and claims without type assertions.",
+    title: "Typed user context",
+    description: "Read the signed-in user and claims without type assertions.",
     icon: Braces,
   },
   {
-    title: "Real middleware",
-    description: "Authentication and request-protection middleware ship as composable plugins.",
+    title: "Middleware that composes",
+    description: "Protect routes with middleware that fits your existing handler chain.",
     icon: Layers,
   },
   {
-    title: "Programmatic APIs",
-    description: "Call auth.Api and plugin APIs directly in library mode.",
+    title: "Direct Go APIs",
+    description: "Manage users and sessions from Go when HTTP is not the right tool.",
     icon: Plug,
   },
   {
     title: "Config in code",
-    description: "Functional options and compile-time checks for library setups.",
+    description: "Keep auth settings in Go and catch mistakes when you build.",
     icon: Settings2,
+  },
+];
+
+export const developerLifecycle: readonly DeveloperLifecycleStep[] = [
+  {
+    title: "Request arrives",
+    description: "A request hits a route protected by Authula.",
+  },
+  {
+    title: "Session is checked",
+    description: "Authula reads the cookie or bearer token and verifies it.",
+  },
+  {
+    title: "Your handler runs",
+    description: "The signed-in user and claims are ready in the request context.",
+  },
+  {
+    title: "Response leaves",
+    description: "Authula can refresh the session, add headers or record an event.",
   },
 ];
 
@@ -484,7 +619,7 @@ export const getStartedSteps: readonly GetStartedStep[] = [
   {
     id: "choose",
     title: "Choose library or standalone",
-    description: "Embed the handler in Go or run the service from a config file.",
+    description: "Embed it in your Go app or run it as its own service.",
     link: {
       label: "Open the setup guide",
       href: "/docs/get-started/installation",
@@ -493,7 +628,26 @@ export const getStartedSteps: readonly GetStartedStep[] = [
   {
     id: "run",
     title: "Start the service",
-    description: "Mount config.toml, pass your environment and start the official image.",
+    description:
+      "Start the binary or official image with your database and environment. Migrations run on startup.",
+  },
+];
+
+export const getStartedPaths: readonly GetStartedPath[] = [
+  {
+    label: "Installation guide",
+    description: "Set up Authula as a standalone service.",
+    href: "/docs/get-started/installation",
+  },
+  {
+    label: "Library mode",
+    description: "Add Authula to an existing Go application.",
+    href: "/docs/guides/library-mode",
+  },
+  {
+    label: "Adapters",
+    description: "Connect net/http, Chi, Echo or Fiber.",
+    href: "/docs/integrations/adapters",
   },
 ];
 

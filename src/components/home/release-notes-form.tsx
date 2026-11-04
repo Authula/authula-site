@@ -16,12 +16,17 @@ type ReleaseNotesFormProps = {
   className?: string;
 };
 
+const fallbackErrorMessage = "Something went wrong. Please try again later.";
+
 export function ReleaseNotesForm({ className }: ReleaseNotesFormProps) {
   const inputId = useId();
+  const errorId = useId();
   const [email, setEmail] = useState<string>("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   const isDisabled = status === "loading" || status === "success";
+  const isInvalid = status === "error";
 
   const handleSubmit = async (event: React.SubmitEvent) => {
     event.preventDefault();
@@ -31,21 +36,40 @@ export function ReleaseNotesForm({ className }: ReleaseNotesFormProps) {
     }
 
     setStatus("loading");
+    setErrorMessage("");
 
-    const result = await joinWaitlist(email);
-    if (!result.success) {
-      setStatus("error");
-      toast.error("Error", {
-        description: result.message,
+    try {
+      const result = await joinWaitlist(email);
+      if (!result.success) {
+        setStatus("error");
+        setErrorMessage(result.message || fallbackErrorMessage);
+        toast.error("Could not subscribe", {
+          description: result.message || fallbackErrorMessage,
+        });
+        return;
+      }
+
+      setStatus("success");
+      toast.success("Subscribed", {
+        description: "We'll keep you posted.",
       });
-      return;
+      setEmail("");
+    } catch {
+      // Network/server-action failures must still resolve the loading state.
+      setStatus("error");
+      setErrorMessage(fallbackErrorMessage);
+      toast.error("Could not subscribe", {
+        description: fallbackErrorMessage,
+      });
     }
+  };
 
-    setStatus("success");
-    toast.success("Success", {
-      description: "You're on the list! We'll keep you posted.",
-    });
-    setEmail("");
+  const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(event.target.value);
+    if (status === "error") {
+      setStatus("idle");
+      setErrorMessage("");
+    }
   };
 
   return (
@@ -62,16 +86,18 @@ export function ReleaseNotesForm({ className }: ReleaseNotesFormProps) {
           autoComplete="email"
           placeholder={releaseNotes.placeholder}
           value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          onChange={handleEmailChange}
           required
           disabled={isDisabled}
-          className="h-11 border-home-line bg-home-panel text-[15px] text-home-text shadow-none placeholder:text-home-muted focus-visible:border-home-accent-line focus-visible:ring-home-accent/40 disabled:opacity-60 dark:bg-home-panel"
+          aria-invalid={isInvalid || undefined}
+          aria-describedby={isInvalid ? errorId : undefined}
+          className="h-11 border-white/35 bg-home-panel text-[15px] text-home-text shadow-none placeholder:text-home-muted focus-visible:border-home-accent-bright focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel-raised disabled:opacity-60 dark:bg-home-panel"
         />
 
         <Button
           type="submit"
           disabled={!email || isDisabled}
-          className="h-11 shrink-0 rounded-[10px] border-0 bg-linear-to-r from-blue-600 to-sky-600 px-5 text-sm font-medium text-white transition-all hover:from-blue-500 hover:to-sky-500 active:translate-y-px disabled:opacity-60"
+          className="h-11 shrink-0 rounded-[10px] border-0 bg-linear-to-r from-blue-700 to-sky-700 px-5 text-sm font-medium text-white transition-all hover:from-blue-800 hover:to-sky-800 focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel-raised active:translate-y-px disabled:opacity-60"
         >
           {status === "loading" ? (
             <>
@@ -91,6 +117,12 @@ export function ReleaseNotesForm({ className }: ReleaseNotesFormProps) {
           )}
         </Button>
       </div>
+
+      {isInvalid ? (
+        <p id={errorId} role="alert" className="text-xs leading-relaxed text-red-400">
+          {errorMessage}
+        </p>
+      ) : null}
 
       <p className="text-xs leading-relaxed text-home-muted">{releaseNotes.microcopy}</p>
     </form>

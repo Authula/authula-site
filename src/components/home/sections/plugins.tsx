@@ -3,22 +3,14 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  pluginCodeSample,
-  pluginExplainers,
-  pluginGuide,
-  pluginLifecycle,
-  sectionCopy,
-} from "@/data/home";
-import { homeSnippets } from "@/data/home-snippets";
+import { pluginExplainers, pluginGuide, pluginLifecycleSteps, sectionCopy } from "@/data/home";
 
-import { CodeBlock } from "../code-block";
 import { PluginMap } from "../plugin-map";
 import { Reveal } from "../reveal";
 import { SectionHeader } from "../section-header";
 import { SectionShell } from "../section-shell";
 
-const labelClassName = "font-mono text-[11px] tracking-[0.14em] text-home-muted uppercase";
+const labelClassName = "text-xs font-medium tracking-[0.14em] text-home-muted uppercase";
 
 export function PluginsSection() {
   return (
@@ -39,16 +31,19 @@ export function PluginsSection() {
 
           <Reveal delay={0.08}>
             <div>
-              <h3 className={labelClassName}>Plugin lifecycle</h3>
-              <ol className="mt-3 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center">
-                {pluginLifecycle.map((step, index) => (
-                  <li key={step} className="flex min-w-0 items-center">
-                    <span className="inline-flex w-full items-center gap-2 rounded-[10px] border border-home-line bg-white/[0.02] px-2 py-1.5 font-mono text-[11px] leading-snug text-home-muted-strong sm:w-auto">
-                      <span aria-hidden="true" className="text-[10px] text-home-muted">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      {step}
+              <h3 className={labelClassName}>How a plugin connects</h3>
+              <ol className="mt-3 flex flex-col gap-3">
+                {pluginLifecycleSteps.map((step, index) => (
+                  <li key={step.label} className="flex gap-3">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-home-line bg-white/[0.02] text-xs text-home-muted-strong">
+                      {String(index + 1).padStart(2, "0")}
                     </span>
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium text-home-text">{step.label}</p>
+                      <p className="mt-0.5 text-xs leading-relaxed text-home-muted">
+                        {step.description}
+                      </p>
+                    </div>
                   </li>
                 ))}
               </ol>
@@ -81,19 +76,9 @@ export function PluginsSection() {
             </ul>
 
             <div>
-              <h3 className={labelClassName}>The interface</h3>
-              <CodeBlock
-                className="mt-3"
-                code={homeSnippets[pluginCodeSample.snippetKey]}
-                language={pluginCodeSample.language}
-                filename={pluginCodeSample.filename}
-              />
-            </div>
-
-            <div>
               <Button
                 asChild
-                className="h-11 rounded-[10px] border border-home-line bg-transparent px-5 text-sm font-medium text-home-muted-strong transition-colors hover:border-home-accent-line hover:bg-home-panel-hover hover:text-home-accent-bright focus-visible:ring-2 focus-visible:ring-home-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg focus-visible:outline-none"
+                className="h-11 rounded-[10px] border border-home-line bg-transparent px-5 text-sm font-medium text-home-muted-strong transition-colors hover:border-home-accent-line hover:bg-home-panel-hover hover:text-home-accent-bright focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel focus-visible:outline-none"
               >
                 <Link href={pluginGuide.href}>
                   {pluginGuide.label}

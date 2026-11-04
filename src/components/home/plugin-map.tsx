@@ -6,7 +6,7 @@ const leftPlugins = ["Auth method", "Token issuer", "Session store", "Data adapt
 const rightPlugins = ["Request guard", "Access policy", "Custom route"] as const;
 
 const chipClassName =
-  "flex w-full items-center justify-center rounded-[10px] border border-home-line bg-home-panel px-2.5 py-2 text-center font-mono text-[11px] leading-snug text-home-muted-strong md:w-auto";
+  "flex w-full items-center justify-center rounded-[10px] border border-home-line bg-home-panel px-2.5 py-2 text-center text-xs leading-snug text-home-muted-strong xl:w-auto";
 
 export function PluginMap({ className }: { className?: string }) {
   return (
@@ -22,65 +22,52 @@ export function PluginMap({ className }: { className?: string }) {
       />
 
       <div className="relative p-5 sm:p-6">
-        <div className="flex items-center justify-between gap-3 border-b border-home-line pb-4 font-mono text-[11px] tracking-[0.14em] uppercase">
-          <span className="text-home-muted">Plugin registry</span>
-          <span className="text-home-accent-bright">Compiled in</span>
+        <div className="flex items-center justify-between gap-3 border-b border-home-line pb-4 text-xs tracking-[0.14em] uppercase">
+          <span className="text-home-muted">Plugins</span>
+          <span className="text-home-accent-bright">Compiled into the binary</span>
         </div>
 
-        <div
-          role="img"
-          aria-label="The Authula core at the center, surrounded by plugin roles and a highlighted slot for your own plugin."
-          className="mt-6"
-        >
-          <p className="sr-only">
-            Diagram: the Authula core sits in the middle. Plugin roles for authentication, token
-            issuance, session storage, data adapters, request protection, access policy and custom
-            routes connect to the core. A dashed, highlighted slot labelled Your plugin shows where
-            a custom plugin plugs in.
-          </p>
-
-          <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-3">
-            <ul className="order-2 grid grid-cols-2 gap-2 md:order-1 md:flex md:flex-col md:items-end">
-              {leftPlugins.map((plugin) => (
-                <li key={plugin} className={chipClassName}>
-                  {plugin}
-                </li>
-              ))}
-            </ul>
-
-            <div className="relative order-1 flex justify-center md:order-2">
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute top-1/2 left-1/2 hidden size-56 -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-home-line md:block"
-              />
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute top-1/2 left-1/2 hidden size-72 -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-home-line/60 md:block"
-              />
-
-              <div className="relative z-10 w-full max-w-[230px] rounded-[14px] border border-home-accent-line bg-home-panel-raised px-4 py-4 text-center shadow-[0_24px_80px_-32px_rgba(3,7,16,0.9)] md:w-[200px]">
-                <div className="flex items-center justify-center gap-2">
-                  <Boxes className="size-4 text-home-accent-bright" aria-hidden="true" />
-                  <span className="text-sm font-semibold text-home-text">Authula core</span>
-                </div>
-                <p className="mt-2 font-mono text-[10px] tracking-[0.04em] text-home-muted">
-                  registry · hooks · services
-                </p>
-              </div>
-            </div>
-
-            <ul className="order-3 grid grid-cols-2 gap-2 md:flex md:flex-col md:items-start">
-              {rightPlugins.map((plugin) => (
-                <li key={plugin} className={chipClassName}>
-                  {plugin}
-                </li>
-              ))}
-              <li className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-home-accent-line bg-home-accent-soft px-2.5 py-2 text-center font-mono text-[11px] leading-snug text-home-accent-bright md:w-auto">
-                <Plus className="size-3.5" aria-hidden="true" />
-                Your plugin
+        <div className="relative isolate mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] xl:items-center xl:gap-3">
+          <ul className="relative z-10 order-2 grid grid-cols-2 gap-2 xl:order-1 xl:flex xl:flex-col xl:items-end">
+            {leftPlugins.map((plugin) => (
+              <li key={plugin} className={chipClassName}>
+                {plugin}
               </li>
-            </ul>
+            ))}
+          </ul>
+
+          <div className="relative order-1 flex justify-center xl:order-2">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 left-1/2 z-0 hidden size-52 -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-home-line xl:block"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 left-1/2 z-0 hidden size-64 -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-home-line/60 xl:block"
+            />
+
+            <div className="relative z-10 w-full max-w-[230px] rounded-[14px] border border-home-accent-line bg-home-panel-raised px-4 py-4 text-center shadow-[0_24px_80px_-32px_rgba(3,7,16,0.9)] xl:w-[176px]">
+              <div className="flex items-center justify-center gap-2">
+                <Boxes className="size-4 text-home-accent-bright" aria-hidden="true" />
+                <span className="text-sm font-semibold text-home-text">Authula core</span>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-home-muted">
+                Shared services, hooks and migrations
+              </p>
+            </div>
           </div>
+
+          <ul className="relative z-10 order-3 grid grid-cols-2 gap-2 xl:flex xl:flex-col xl:items-start">
+            {rightPlugins.map((plugin) => (
+              <li key={plugin} className={chipClassName}>
+                {plugin}
+              </li>
+            ))}
+            <li className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-home-accent-line bg-home-accent-soft px-2.5 py-2 text-center text-xs leading-snug text-home-accent-bright xl:w-auto">
+              <Plus className="size-3.5" aria-hidden="true" />
+              Your plugin
+            </li>
+          </ul>
         </div>
 
         <p className="mt-6 border-t border-home-line pt-4 text-xs leading-relaxed text-home-muted">

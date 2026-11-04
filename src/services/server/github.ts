@@ -1,9 +1,17 @@
-"use server";
+import { cache } from "react";
 
 import { CONSTANTS } from "@/constants/constants";
 import { gitHubRepoResponseSchema } from "@/models";
 
-export const getGitHubRepoStars = async (): Promise<number | null> => {
+/**
+ * Fetch the repository star count.
+ *
+ * - Not a server action: this is only called from server components.
+ * - Wrapped in React `cache()` so every component in a request (Hero,
+ *   Community) shares a single upstream fetch.
+ * - Aborts after 2s so a slow GitHub response cannot hold the page.
+ */
+export const getGitHubRepoStars = cache(async (): Promise<number | null> => {
   try {
     const response = await fetch(CONSTANTS.githubRepoApiUrl, {
       next: {
@@ -12,6 +20,7 @@ export const getGitHubRepoStars = async (): Promise<number | null> => {
       headers: {
         Accept: "application/vnd.github+json",
       },
+      signal: AbortSignal.timeout(2000),
     });
     if (!response.ok) {
       console.error(`Failed to fetch GitHub repo data: ${response.statusText}`);
@@ -27,8 +36,8 @@ export const getGitHubRepoStars = async (): Promise<number | null> => {
     }
 
     return validationResult.data.stargazers_count ?? null;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Error fetching GitHub repo stars:`, error);
     return null;
   }
-};
+});

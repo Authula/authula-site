@@ -147,7 +147,7 @@
   --home-code-bg: #060a11;
   --home-code-keyword: #7dd3fc;
   --home-code-string: #a5b4fc;
-  --home-code-comment: #64748b;
+  --home-code-comment: #74849a;
   --home-code-number: #93c5fd;
   --home-code-text: #dbe5f3;
   --home-code-punct: #8fa0b7;
@@ -228,6 +228,48 @@
   }
 }
 
+/* Fumadocs' home layout hard-codes --fd-layout-width: 1400px on #nd-home-layout.
+   Keep the sticky header aligned with .home-container (1280px). This rule is
+   intentionally unlayered so it wins over the utility class. */
+#nd-home-layout {
+  --fd-layout-width: 1280px;
+}
+
+/* Fumadocs owns the header's links/buttons, so give them the same high-contrast
+   focus indicator used elsewhere on the page. */
+#nd-nav :is(a, button, input):focus-visible {
+  outline: 2px solid var(--home-accent-bright);
+  outline-offset: 2px;
+}
+
+/* Scroll-reveal fail-safe.
+   Without JS, motion's inline opacity: 0 must never hide content. With JS, the
+   early inline script adds .js; hidden nodes are made visibility:hidden (which
+   also removes them from the tab order) until motion or the 2500ms failsafe
+   marks them data-reveal="in". */
+html:not(.js) [data-reveal="out"] {
+  opacity: 1 !important;
+  transform: none !important;
+  visibility: visible !important;
+}
+
+html.js [data-reveal="out"] {
+  visibility: hidden;
+}
+
+html.js [data-reveal="in"] {
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.js [data-reveal="out"],
+  html.js [data-reveal="in"] {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -287,114 +329,6 @@
     background-repeat: repeat;
     opacity: 0.025;
     pointer-events: none;
-  }
-
-  /* Code panel surface for the CodeBlock primitive. */
-  .home-code {
-    @apply overflow-hidden rounded-[14px] border border-home-line bg-home-code-bg text-home-code-text shadow-[inset_0_1px_0_rgba(255,255,255,0.035)];
-  }
-
-  .home-code-body {
-    @apply overflow-x-auto px-4 py-4 font-mono text-[13px] leading-[1.75];
-    scrollbar-width: thin;
-    scrollbar-color: var(--home-line-strong) transparent;
-  }
-
-  .home-code-body::-webkit-scrollbar {
-    height: 8px;
-  }
-
-  .home-code-body::-webkit-scrollbar-thumb {
-    background-color: var(--home-line-strong);
-    border-radius: 999px;
-  }
-
-  /* TanStack Highlight output. The generated <pre class="th-code"> lives inside
-     .home-code-body, which owns the scrolling and panel padding. */
-  .home-code-body .th-code {
-    margin: 0;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--home-code-text);
-    font: inherit;
-    line-height: inherit;
-  }
-
-  .home-code-body .th-code code {
-    display: block;
-    width: max-content;
-    min-width: 100%;
-    font: inherit;
-    white-space: pre;
-  }
-
-  .home-code-body .th-code--line-numbers code {
-    /* Highlight emits newline text nodes between line spans. Flex drops those
-       whitespace-only nodes, avoiding empty lines between .th-line rows. */
-    display: flex;
-    flex-direction: column;
-  }
-
-  .home-code-body .th-line {
-    display: block;
-    min-height: 1.75em;
-    white-space: pre;
-  }
-
-  .home-code-body .th-code--line-numbers .th-line::before {
-    content: attr(data-line);
-    display: inline-block;
-    width: 2.5rem;
-    padding-right: 0.75rem;
-    color: var(--home-code-comment);
-    text-align: right;
-    user-select: none;
-  }
-
-  .home-code-body .th-token {
-    color: var(--home-code-text);
-  }
-
-  .home-code-body .th-keyword,
-  .home-code-body .th-type,
-  .home-code-body .th-command,
-  .home-code-body .th-tag,
-  .home-code-body .th-selector,
-  .home-code-body .th-heading {
-    color: var(--home-code-keyword);
-  }
-
-  .home-code-body .th-string,
-  .home-code-body .th-attr,
-  .home-code-body .th-code-inline {
-    color: var(--home-code-string);
-  }
-
-  .home-code-body .th-comment,
-  .home-code-body .th-meta {
-    color: var(--home-code-comment);
-  }
-
-  .home-code-body .th-number,
-  .home-code-body .th-literal {
-    color: var(--home-code-number);
-  }
-
-  .home-code-body .th-function,
-  .home-code-body .th-link,
-  .home-code-body .th-property {
-    color: var(--home-accent-bright);
-  }
-
-  .home-code-body .th-operator,
-  .home-code-body .th-variable {
-    color: var(--home-code-punct);
-  }
-
-  .home-code-body .th-deleted,
-  .home-code-body .th-inserted {
-    color: var(--home-code-text);
   }
 
   /* Hero load-in: opacity + 12px rise. Stagger by setting the delay custom

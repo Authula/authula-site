@@ -65,7 +65,7 @@ export function ProductionSection() {
 
         <Reveal delay={0.1}>
           <div className="mt-12 md:mt-16">
-            <h3 className="pb-4 font-mono text-[11px] tracking-[0.16em] text-home-muted-strong uppercase">
+            <h3 className="pb-4 font-mono text-xs tracking-[0.16em] text-home-muted-strong uppercase">
               Deployment
             </h3>
 

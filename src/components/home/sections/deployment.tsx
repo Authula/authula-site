@@ -2,8 +2,6 @@ import Link from "next/link";
 
 import { ArrowRight, Check } from "lucide-react";
 
-import { CodeBlock } from "@/components/home/code-block";
-import { ModeDiagram } from "@/components/home/mode-diagram";
 import { Reveal } from "@/components/home/reveal";
 import { SectionHeader } from "@/components/home/section-header";
 import { SectionShell } from "@/components/home/section-shell";
@@ -13,9 +11,8 @@ import {
   sectionCopy,
   type DeploymentMode,
 } from "@/data/home";
-import { homeSnippets } from "@/data/home-snippets";
 
-function ModePanel({ mode, index }: { mode: DeploymentMode; index: number }) {
+function ModePanel({ mode }: { mode: DeploymentMode }) {
   const Icon = mode.icon;
 
   return (
@@ -29,22 +26,15 @@ function ModePanel({ mode, index }: { mode: DeploymentMode; index: number }) {
         </span>
         <h3
           id={`${mode.id}-mode-title`}
-          className="font-mono text-[11px] font-medium tracking-[0.16em] text-home-muted-strong uppercase"
+          className="text-sm font-semibold tracking-[-0.01em] text-home-text"
         >
           {mode.label}
         </h3>
-        <span className="ml-auto font-mono text-[10px] text-home-code-comment">
-          {String(index + 1).padStart(2, "0")}
-        </span>
       </div>
 
       <p className="mt-4 text-[17px] leading-snug text-pretty text-home-text md:text-lg">
         {mode.description}
       </p>
-
-      <div className="mt-5">
-        <ModeDiagram mode={mode.id} />
-      </div>
 
       <ul className="mt-5 space-y-2.5">
         {mode.highlights.map((highlight) => (
@@ -60,18 +50,22 @@ function ModePanel({ mode, index }: { mode: DeploymentMode; index: number }) {
         ))}
       </ul>
 
-      <div className="mt-6 min-w-0 [&_.home-code-body]:max-h-[21rem] [&_.home-code-body]:min-h-[12rem] [&_.home-code-body]:overflow-y-auto [&_.home-code-body]:overscroll-contain">
-        <CodeBlock
-          code={homeSnippets[mode.codeSample.snippetKey]}
-          language={mode.codeSample.language}
-          filename={mode.codeSample.filename}
-        />
-      </div>
+      <dl className="mt-5 divide-y divide-home-line rounded-[12px] border border-home-line bg-home-bg-deep/40">
+        {mode.comparison.map((row) => (
+          <div
+            key={row.label}
+            className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-3 px-3.5 py-2.5"
+          >
+            <dt className="text-xs leading-relaxed text-home-muted">{row.label}</dt>
+            <dd className="text-xs leading-relaxed text-home-muted-strong">{row.value}</dd>
+          </div>
+        ))}
+      </dl>
 
       <div className="mt-auto pt-6">
         <Link
           href={mode.link.href}
-          className="group inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-home-accent-bright transition-colors duration-200 hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel focus-visible:outline-none"
+          className="group inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-home-accent-bright transition-colors duration-200 hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel focus-visible:outline-none"
         >
           {mode.link.label}
           <ArrowRight
@@ -99,13 +93,13 @@ export function Deployment() {
         <div className="mt-10 grid grid-cols-1 gap-6 md:mt-12 lg:grid-cols-2">
           {deploymentModes.map((mode, index) => (
             <Reveal key={mode.id} delay={0.1 + index * 0.08} className="h-full min-w-0">
-              <ModePanel mode={mode} index={index} />
+              <ModePanel mode={mode} />
             </Reveal>
           ))}
         </div>
 
         <Reveal delay={0.28}>
-          <p className="mt-10 border-t border-dashed border-home-line pt-6 text-center font-mono text-xs leading-relaxed text-home-muted md:text-[13px]">
+          <p className="mt-10 border-t border-dashed border-home-line pt-6 text-center text-sm leading-relaxed text-home-muted">
             {deploymentFooterLine}
           </p>
         </Reveal>

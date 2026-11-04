@@ -3,17 +3,21 @@ import { Fragment } from "react";
 
 import { ArrowRight, ArrowUpRight, BookOpen, Code2, Scale } from "lucide-react";
 
-import { CodeBlock } from "@/components/home/code-block";
 import { Reveal } from "@/components/home/reveal";
 import { SectionHeader } from "@/components/home/section-header";
 import { SectionShell } from "@/components/home/section-shell";
 import { Button } from "@/components/ui/button";
-import { getStartedCtas, getStartedLicense, getStartedSteps, sectionCopy } from "@/data/home";
-import { homeSnippets } from "@/data/home-snippets";
+import {
+  getStartedCtas,
+  getStartedLicense,
+  getStartedPaths,
+  getStartedSteps,
+  sectionCopy,
+} from "@/data/home";
 import { cn } from "@/lib/utils";
 
 const ctaStyles = [
-  "border-0 bg-linear-to-r from-blue-600 to-sky-600 text-white hover:from-blue-500 hover:to-sky-500",
+  "border-0 bg-linear-to-r from-blue-700 to-sky-700 text-white hover:from-blue-800 hover:to-sky-800",
   "border border-home-line bg-transparent text-home-muted-strong hover:border-home-accent-line hover:bg-white/[0.02] hover:text-home-text",
 ] as const;
 
@@ -72,7 +76,7 @@ export function GetStarted() {
 
                     <span
                       aria-hidden="true"
-                      className="relative z-10 flex size-8 items-center justify-center rounded-[10px] border border-home-line bg-home-bg font-mono text-[11px] text-home-accent-bright shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+                      className="relative z-10 flex size-8 items-center justify-center rounded-[10px] border border-home-line bg-home-bg text-xs text-home-accent-bright shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
                     >
                       {String(index + 1).padStart(2, "0")}
                     </span>
@@ -87,7 +91,7 @@ export function GetStarted() {
 
                       {step.command ? (
                         <div className="mt-3 flex min-w-0 items-stretch overflow-hidden rounded-[10px] border border-home-line bg-home-code-bg">
-                          <span className="flex shrink-0 items-center border-r border-home-line px-3 font-mono text-[10px] tracking-[0.12em] text-home-code-comment uppercase">
+                          <span className="flex shrink-0 items-center border-r border-home-line px-3 text-xs tracking-[0.12em] text-home-code-comment uppercase">
                             {step.language}
                           </span>
                           <div className="min-w-0 flex-1 overflow-x-auto px-3.5 py-2.5">
@@ -102,7 +106,7 @@ export function GetStarted() {
                       {step.link ? (
                         <Link
                           href={step.link.href}
-                          className="group mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-home-accent-bright transition-colors hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg-deep focus-visible:outline-none"
+                          className="group mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-home-accent-bright transition-colors hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg-deep focus-visible:outline-none"
                         >
                           {step.link.label}
                           <ArrowRight
@@ -119,22 +123,37 @@ export function GetStarted() {
           </Reveal>
 
           <Reveal delay={0.1} className="min-w-0">
-            <div className="min-w-0">
-              <div className="mb-3">
-                <h3 className="text-lg font-semibold tracking-[-0.015em] text-home-text">
-                  Run the image
-                </h3>
-                <p className="mt-1 text-[13px] leading-relaxed text-home-muted">
-                  Run the official image with your config file and environment.
-                </p>
-              </div>
+            <div className="rounded-[20px] border border-home-line bg-home-panel p-5 shadow-[0_24px_80px_-32px_rgba(3,7,16,0.9),inset_0_1px_0_rgba(255,255,255,0.035)] sm:p-6">
+              <h3 className="text-base font-semibold tracking-[-0.01em] text-home-text">
+                Choose your path
+              </h3>
+              <p className="mt-1 text-[13px] leading-relaxed text-home-muted">
+                Every path starts from the same core.
+              </p>
 
-              <CodeBlock
-                code={homeSnippets.standaloneDocker}
-                language="bash"
-                filename="terminal"
-                className="[&_.home-code-body]:max-h-[16rem] [&_.home-code-body]:overflow-y-auto [&_.home-code-body]:overscroll-contain"
-              />
+              <ul className="mt-4 divide-y divide-home-line">
+                {getStartedPaths.map((path) => (
+                  <li key={path.href}>
+                    <Link
+                      href={path.href}
+                      className="group flex min-h-11 items-center gap-3 rounded-[8px] py-3 transition-colors hover:text-home-accent-bright focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel focus-visible:outline-none"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium text-home-text group-hover:text-home-accent-bright">
+                          {path.label}
+                        </span>
+                        <span className="mt-0.5 block text-xs leading-relaxed text-home-muted">
+                          {path.description}
+                        </span>
+                      </span>
+                      <ArrowRight
+                        className="size-4 shrink-0 text-home-muted transition-colors group-hover:text-home-accent-bright"
+                        aria-hidden="true"
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
           </Reveal>
         </div>
@@ -155,7 +174,7 @@ export function GetStarted() {
                   </>
                 );
                 const className = cn(
-                  "h-11 w-full gap-2 rounded-[10px] px-4 text-sm font-medium transition-all active:translate-y-px sm:w-auto",
+                  "h-11 w-full gap-2 rounded-[10px] px-4 text-sm font-medium transition-all active:translate-y-px focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg-deep sm:w-auto",
                   ctaStyles[index] ?? ctaStyles[1],
                 );
 

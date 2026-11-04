@@ -6,16 +6,16 @@ import { ArrowUp } from "lucide-react";
 import { footerBrand, footerColumns } from "@/data/home";
 
 const footerLinkClassName =
-  "inline-flex min-h-11 w-fit items-center rounded-[6px] text-[13px] leading-relaxed text-home-muted transition-colors hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg-deep focus-visible:outline-none md:min-h-9";
+  "inline-flex min-h-11 w-fit items-center rounded-[6px] text-[13px] leading-relaxed text-home-muted transition-colors hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg-deep focus-visible:outline-none md:min-h-9";
 
 function isExternalHref(href: string): boolean {
   return href.startsWith("http://") || href.startsWith("https://");
 }
 
-// Resolve once at module scope so the render path stays pure.
-const currentYear = new Date().getFullYear();
-
 export function Footer() {
+  // oxlint-disable-next-line react/purity -- the current year is intentionally resolved per render.
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className="relative border-t border-home-line bg-home-bg-deep text-home-text">
       <div
@@ -29,7 +29,7 @@ export function Footer() {
             <Link
               href="/"
               aria-label="Authula home"
-              className="inline-flex rounded-[8px] focus-visible:ring-2 focus-visible:ring-home-accent/60 focus-visible:ring-offset-4 focus-visible:ring-offset-home-bg-deep focus-visible:outline-none"
+              className="inline-flex rounded-[8px] focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-4 focus-visible:ring-offset-home-bg-deep focus-visible:outline-none"
             >
               <Image src="/app-logo.png" alt="Authula" width={90} height={36} />
             </Link>
@@ -38,7 +38,7 @@ export function Footer() {
               {footerBrand.description}
             </p>
 
-            <p className="mt-5 inline-flex items-center gap-2 font-mono text-[11px] text-home-muted-strong">
+            <p className="mt-5 inline-flex items-center gap-2 font-mono text-xs text-home-muted-strong">
               <span aria-hidden="true" className="size-1.5 rounded-full bg-home-accent" />
               {footerBrand.license}
             </p>
@@ -48,7 +48,7 @@ export function Footer() {
             <div className="grid grid-cols-2 gap-x-8 gap-y-10 lg:grid-cols-4">
               {footerColumns.map((column) => (
                 <div key={column.title}>
-                  <p className="font-mono text-[11px] tracking-[0.14em] text-home-code-comment uppercase">
+                  <p className="font-mono text-xs tracking-[0.14em] text-home-code-comment uppercase">
                     {column.title}
                   </p>
 
@@ -97,7 +97,7 @@ export function Footer() {
 
           <Link
             href={footerBrand.backToTop.href}
-            className="group inline-flex min-h-11 w-fit items-center gap-2 rounded-[6px] text-home-muted-strong transition-colors hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg-deep focus-visible:outline-none"
+            className="group inline-flex min-h-11 w-fit items-center gap-2 rounded-[6px] text-home-muted-strong transition-colors hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg-deep focus-visible:outline-none"
           >
             {footerBrand.backToTop.label}
             <ArrowUp
