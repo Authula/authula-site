@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import BorderIndicators from "@/components/shared/BorderIndicators";
+import { FrameCorners } from "@/components/home/frame-corners";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ENV_CONFIG } from "@/constants/env-config";
@@ -254,7 +254,7 @@ export default function SponsorsSection() {
       <div className="absolute inset-0 -z-10 h-full w-full bg-[radial-gradient(#3b82f6_1px,transparent_1px)] bg-size-[16px_16px] mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-[0.15]" />
 
       <div className="custom-container relative border-x border-dashed border-sky-950">
-        <BorderIndicators />
+        <FrameCorners className="text-sky-500" />
 
         <div className="flex flex-col gap-10">
           <div className="max-w-2xl">

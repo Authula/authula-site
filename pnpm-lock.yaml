@@ -175,6 +175,9 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.5.0
         version: 1.5.0(@types/react@19.3.0)(react@19.3.1)
+      '@tanstack/highlight':
+        specifier: ^1.2.11
+        version: 1.2.11
       '@tanstack/react-form':
         specifier: ^1.33.5
         version: 1.33.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -2078,6 +2081,10 @@ packages:
 
   '@tanstack/form-core@1.33.5':
     resolution: {integrity: sha512-3dfx9MBP0aq5sXKteikG629X9oviptrQj0IFRk9YGcb+lB7Kv5x8S17oOSk1wUWgjQZ4xVJEMbKwOAODymocgA==}
+
+  '@tanstack/highlight@1.2.11':
+    resolution: {integrity: sha512-U8Aac/Y/Y4ym6JRi/waDK/D7uce+1feMdOU163KmhNFBdbcilnE9O4RDIdJ31cWcf+Z4esXv/lJyG1P4BOTY7A==}
+    engines: {node: '>=18'}
 
   '@tanstack/pacer-lite@0.1.1':
     resolution: {integrity: sha512-y/xtNPNt/YeyoVxE/JCx+T7yjEzpezmbb+toK8DDD1P4m7Kzs5YR956+7OKexG3f8aXgC3rLZl7b1V+yNUSy5w==}
@@ -4981,6 +4988,8 @@ snapshots:
       '@tanstack/devtools-event-client': 0.4.4
       '@tanstack/pacer-lite': 0.1.1
       '@tanstack/store': 0.11.0
+
+  '@tanstack/highlight@1.2.11': {}
 
   '@tanstack/pacer-lite@0.1.1': {}
 
