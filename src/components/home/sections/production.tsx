@@ -12,12 +12,7 @@ import {
 
 export function ProductionSection() {
   return (
-    <SectionShell
-      id="production"
-      tone="panel"
-      contained={false}
-      ariaLabelledBy="production-heading"
-    >
+    <SectionShell id="production" contained={false} ariaLabelledBy="production-heading">
       <span id="comparison" aria-hidden="true" className="sr-only scroll-mt-24" />
 
       <div className="home-container">

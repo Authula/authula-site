@@ -18,7 +18,7 @@ function ModePanel({ mode }: { mode: DeploymentMode }) {
   return (
     <article
       aria-labelledby={`${mode.id}-mode-title`}
-      className="flex h-full min-w-0 flex-col rounded-[20px] border border-home-line bg-home-panel p-5 shadow-[0_24px_80px_-32px_rgba(3,7,16,0.9),inset_0_1px_0_rgba(255,255,255,0.035)] sm:p-6 lg:p-7"
+      className="flex h-full min-w-0 flex-col rounded-[20px] border border-home-line bg-home-panel-raised p-5 shadow-[0_24px_80px_-32px_rgba(3,7,16,0.9),inset_0_1px_0_rgba(255,255,255,0.035)] sm:p-6 lg:p-7"
     >
       <div className="flex items-center gap-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-home-accent-line bg-home-accent-soft text-home-accent-bright">
@@ -65,7 +65,7 @@ function ModePanel({ mode }: { mode: DeploymentMode }) {
       <div className="mt-auto pt-6">
         <Link
           href={mode.link.href}
-          className="group inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-home-accent-bright transition-colors duration-200 hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel focus-visible:outline-none"
+          className="group inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-home-accent-bright transition-colors duration-200 hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel-raised focus-visible:outline-none"
         >
           {mode.link.label}
           <ArrowRight

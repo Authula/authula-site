@@ -358,6 +358,213 @@ html.js [data-reveal="in"] {
   }
 }
 
+/* Changelog release body. Scoped so the docs and blog prose keep their
+   existing Fumadocs theme. */
+.changelog-prose {
+  --tw-prose-body: var(--home-muted);
+  --tw-prose-headings: var(--home-text);
+  --tw-prose-bold: var(--home-text);
+  --tw-prose-links: var(--home-accent-bright);
+  --tw-prose-bullets: var(--home-accent-line);
+  --tw-prose-counters: var(--home-muted-strong);
+  --tw-prose-hr: var(--home-line);
+  --tw-prose-quotes: var(--home-muted-strong);
+  --tw-prose-quote-borders: var(--home-line-strong);
+  --tw-prose-code: var(--home-text);
+  --tw-prose-th-borders: var(--home-line);
+  --tw-prose-td-borders: var(--home-line);
+  --color-fd-card: var(--home-code-bg);
+  --color-fd-border: var(--home-line);
+  --color-fd-muted: var(--home-panel);
+  --color-fd-muted-foreground: var(--home-code-comment);
+  --color-fd-primary: var(--home-accent-bright);
+  --color-fd-secondary: var(--home-panel);
+  --color-fd-secondary-foreground: var(--home-text);
+  --color-fd-accent: var(--home-panel-hover);
+  --color-fd-accent-foreground: var(--home-text);
+  --color-fd-ring: var(--home-accent-bright);
+
+  color: var(--home-muted);
+}
+
+.changelog-prose > :first-child {
+  margin-top: 0;
+}
+
+.changelog-prose > :last-child {
+  margin-bottom: 0;
+}
+
+.changelog-prose :is(h1, h2, h3, h4) {
+  color: var(--home-text);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.changelog-prose h2 {
+  margin-top: 2.4em;
+  margin-bottom: 0.85em;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--home-line);
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.changelog-prose h3 {
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.changelog-prose h4 {
+  margin-top: 1.75em;
+  margin-bottom: 0.5em;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.changelog-prose p {
+  margin-top: 1.15em;
+  margin-bottom: 1.15em;
+  line-height: 1.75;
+}
+
+.changelog-prose :is(ul, ol) {
+  margin-top: 1.1em;
+  margin-bottom: 1.1em;
+}
+
+.changelog-prose li {
+  margin-top: 0.4em;
+  margin-bottom: 0.4em;
+  line-height: 1.7;
+}
+
+.changelog-prose li::marker {
+  color: var(--tw-prose-bullets);
+}
+
+.changelog-prose ol > li::marker {
+  color: var(--tw-prose-counters);
+}
+
+.changelog-prose strong {
+  color: var(--home-text);
+  font-weight: 600;
+}
+
+.changelog-prose a {
+  color: var(--home-accent-bright);
+  text-decoration-color: var(--home-accent-line);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition:
+    color 150ms ease,
+    text-decoration-color 150ms ease;
+}
+
+.changelog-prose a:hover {
+  color: var(--home-text);
+  text-decoration-color: var(--home-accent-bright);
+}
+
+.changelog-prose a:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid var(--home-accent-bright);
+  outline-offset: 2px;
+}
+
+.changelog-prose :not(pre) > code {
+  padding: 0.14em 0.36em;
+  border: 1px solid var(--home-line);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--home-text);
+  font-size: 0.86em;
+  font-weight: 400;
+}
+
+.changelog-prose blockquote {
+  padding: 0.95rem 1.1rem;
+  border-inline-start: 2px solid var(--home-accent-line);
+  border-radius: 0 10px 10px 0;
+  background: var(--home-accent-soft);
+  color: var(--home-muted-strong);
+  font-style: normal;
+  font-weight: 400;
+  quotes: none;
+}
+
+.changelog-prose blockquote p:first-of-type::before,
+.changelog-prose blockquote p:last-of-type::after {
+  content: none;
+}
+
+.changelog-prose blockquote > :first-child {
+  margin-top: 0;
+}
+
+.changelog-prose blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.changelog-prose hr {
+  border-color: var(--home-line);
+}
+
+.changelog-prose table {
+  overflow: hidden;
+  border: 1px solid var(--home-line);
+  border-radius: 12px;
+  background: var(--home-panel-raised);
+}
+
+.changelog-prose thead {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.changelog-prose :is(th, td) {
+  padding: 0.7rem 0.9rem;
+}
+
+.changelog-prose th {
+  color: var(--home-text);
+  font-weight: 600;
+}
+
+.changelog-prose figure.shiki {
+  margin-top: 1.75rem;
+  margin-bottom: 1.75rem;
+  border: 1px solid var(--home-line);
+  border-radius: 12px;
+  background: var(--home-code-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.changelog-prose figure.shiki pre {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--home-code-text);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+
+.changelog-prose figure.shiki pre code {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  font-weight: 400;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto !important;

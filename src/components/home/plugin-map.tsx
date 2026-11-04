@@ -16,11 +16,6 @@ export function PluginMap({ className }: { className?: string }) {
         className,
       )}
     >
-      <div
-        aria-hidden="true"
-        className="home-grid-lines pointer-events-none absolute inset-0 opacity-70"
-      />
-
       <div className="relative p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3 border-b border-home-line pb-4 text-xs tracking-[0.14em] uppercase">
           <span className="text-home-muted">Plugins</span>

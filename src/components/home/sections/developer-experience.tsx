@@ -25,7 +25,7 @@ export function DeveloperExperienceSection() {
 
       <div className="mt-12 grid gap-10 md:mt-14 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start lg:gap-12 xl:gap-16">
         <Reveal delay={0.06} className="min-w-0">
-          <div className="rounded-[20px] border border-home-line bg-home-panel/60 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] sm:p-6">
+          <div className="rounded-[20px] border border-home-line bg-home-panel-raised/60 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] sm:p-6">
             <div className="flex items-center justify-between gap-4 border-b border-home-line pb-3 text-xs tracking-[0.16em] uppercase">
               <span className="text-home-muted">Request lifecycle</span>
               <span className="text-home-accent-bright">
@@ -118,7 +118,7 @@ export function DeveloperExperienceSection() {
 
           <Link
             href="/docs/integrations/adapters"
-            className="group mt-6 inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-home-accent-bright transition-colors hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg focus-visible:outline-none"
+            className="group mt-6 inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-home-accent-bright transition-colors hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel focus-visible:outline-none"
           >
             Read the integration guide
             <ArrowRight

@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 import { cn } from "@/lib/utils";
 
 const cornerPositions = [
@@ -32,7 +30,7 @@ export type FrameCornersProps = {
 
 /**
  * Four-point star markers centred on the four corners of the nearest
- * `relative` ancestor. Only rendered at xl, matching the dashed frame rails.
+ * `relative` ancestor.
  */
 export function FrameCorners({ className }: FrameCornersProps) {
   return (
@@ -43,30 +41,6 @@ export function FrameCorners({ className }: FrameCornersProps) {
       {cornerPositions.map((position) => (
         <StarMark key={position} className={position} />
       ))}
-    </div>
-  );
-}
-
-export type SectionFrameProps = {
-  children: ReactNode;
-  className?: string;
-};
-
-/**
- * Dashed frame offset 24px outside the content column at xl. Below xl it is a
- * plain wrapper, so there is no half-finished rail or horizontal overflow.
- */
-export function SectionFrame({ children, className }: SectionFrameProps) {
-  return (
-    <div
-      data-section-frame=""
-      className={cn(
-        "relative xl:-mx-6 xl:border-x xl:border-dashed xl:border-home-line xl:px-6",
-        className,
-      )}
-    >
-      <FrameCorners />
-      {children}
     </div>
   );
 }

@@ -14,7 +14,7 @@ const labelClassName = "text-xs font-medium tracking-[0.14em] text-home-muted up
 
 export function PluginsSection() {
   return (
-    <SectionShell id="plugins" tone="panel" ariaLabelledBy="plugins-heading">
+    <SectionShell id="plugins" ariaLabelledBy="plugins-heading">
       <Reveal>
         <SectionHeader
           id="plugins-heading"
@@ -78,7 +78,7 @@ export function PluginsSection() {
             <div>
               <Button
                 asChild
-                className="h-11 rounded-[10px] border border-home-line bg-transparent px-5 text-sm font-medium text-home-muted-strong transition-colors hover:border-home-accent-line hover:bg-home-panel-hover hover:text-home-accent-bright focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel focus-visible:outline-none"
+                className="h-11 rounded-[10px] border border-home-line bg-transparent px-5 text-sm font-medium text-home-muted-strong transition-colors hover:border-home-accent-line hover:bg-home-panel-hover hover:text-home-accent-bright focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg focus-visible:outline-none"
               >
                 <Link href={pluginGuide.href}>
                   {pluginGuide.label}

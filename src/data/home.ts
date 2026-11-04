@@ -715,12 +715,12 @@ export const footerColumns: readonly FooterColumn[] = [
   {
     title: "Product",
     links: [
-      { label: "Two ways to build", href: "#two-ways" },
-      { label: "Architecture", href: "#architecture" },
-      { label: "Capabilities", href: "#features" },
-      { label: "Plugins", href: "#plugins" },
-      { label: "Developers", href: "#developers" },
-      { label: "Production", href: "#production" },
+      { label: "Two ways to build", href: "/#two-ways" },
+      { label: "Architecture", href: "/#architecture" },
+      { label: "Capabilities", href: "/#features" },
+      { label: "Plugins", href: "/#plugins" },
+      { label: "Developers", href: "/#developers" },
+      { label: "Production", href: "/#production" },
     ],
   },
   {

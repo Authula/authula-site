@@ -69,7 +69,7 @@ async function GitHubStarChip() {
 
 export function Community() {
   return (
-    <SectionShell id="community" ariaLabelledBy="community-heading" tone="panel" rails>
+    <SectionShell id="community" ariaLabelledBy="community-heading">
       <div className="home-content">
         <div className="overflow-hidden rounded-[20px] border border-home-line bg-home-panel-raised shadow-[0_24px_80px_-32px_rgba(3,7,16,0.9)]">
           <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">

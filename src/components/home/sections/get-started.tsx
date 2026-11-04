@@ -46,7 +46,7 @@ function CtaIcon({ href }: { href: string }) {
 
 export function GetStarted() {
   return (
-    <SectionShell id="get-started" ariaLabelledBy="get-started-heading" tone="accent">
+    <SectionShell id="get-started" ariaLabelledBy="get-started-heading">
       <div className="home-content">
         <Reveal>
           <SectionHeader
@@ -106,7 +106,7 @@ export function GetStarted() {
                       {step.link ? (
                         <Link
                           href={step.link.href}
-                          className="group mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-home-accent-bright transition-colors hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg-deep focus-visible:outline-none"
+                          className="group mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-home-accent-bright transition-colors hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel focus-visible:outline-none"
                         >
                           {step.link.label}
                           <ArrowRight
@@ -123,7 +123,7 @@ export function GetStarted() {
           </Reveal>
 
           <Reveal delay={0.1} className="min-w-0">
-            <div className="rounded-[20px] border border-home-line bg-home-panel p-5 shadow-[0_24px_80px_-32px_rgba(3,7,16,0.9),inset_0_1px_0_rgba(255,255,255,0.035)] sm:p-6">
+            <div className="rounded-[20px] border border-home-line bg-home-panel-raised p-5 shadow-[0_24px_80px_-32px_rgba(3,7,16,0.9),inset_0_1px_0_rgba(255,255,255,0.035)] sm:p-6">
               <h3 className="text-base font-semibold tracking-[-0.01em] text-home-text">
                 Choose your path
               </h3>
@@ -136,7 +136,7 @@ export function GetStarted() {
                   <li key={path.href}>
                     <Link
                       href={path.href}
-                      className="group flex min-h-11 items-center gap-3 rounded-[8px] py-3 transition-colors hover:text-home-accent-bright focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel focus-visible:outline-none"
+                      className="group flex min-h-11 items-center gap-3 rounded-[8px] py-3 transition-colors hover:text-home-accent-bright focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel-raised focus-visible:outline-none"
                     >
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-medium text-home-text group-hover:text-home-accent-bright">
@@ -174,7 +174,7 @@ export function GetStarted() {
                   </>
                 );
                 const className = cn(
-                  "h-11 w-full gap-2 rounded-[10px] px-4 text-sm font-medium transition-all active:translate-y-px focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg-deep sm:w-auto",
+                  "h-11 w-full gap-2 rounded-[10px] px-4 text-sm font-medium transition-all active:translate-y-px focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel sm:w-auto",
                   ctaStyles[index] ?? ctaStyles[1],
                 );
 

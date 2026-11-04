@@ -18,7 +18,7 @@ export function CapabilitiesSection() {
       </Reveal>
 
       <Reveal delay={0.06}>
-        <div className="mt-10 overflow-hidden rounded-[20px] border border-home-line bg-home-panel p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] md:mt-14 md:p-6">
+        <div className="mt-10 overflow-hidden rounded-[20px] border border-home-line bg-home-panel-raised p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] md:mt-14 md:p-6">
           <div className="flex items-center justify-between gap-3 text-xs tracking-[0.14em] uppercase">
             <span className="text-home-muted">Sign-in flow</span>
             <span className="flex items-center gap-2 text-home-accent-bright">
@@ -79,7 +79,7 @@ export function CapabilitiesSection() {
                     </>
                   )}
 
-                  <span className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border border-home-line bg-home-panel-raised text-xs text-home-muted-strong">
+                  <span className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border border-home-line bg-home-panel text-xs text-home-muted-strong">
                     {String(index + 1).padStart(2, "0")}
                   </span>
 
@@ -110,7 +110,7 @@ export function CapabilitiesSection() {
 
           return (
             <Reveal key={group.id} delay={0.1 + groupIndex * 0.06} className="h-full">
-              <div className="h-full rounded-[14px] border border-home-line bg-home-panel/70 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+              <div className="h-full rounded-[14px] border border-home-line bg-home-panel-raised/70 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
                 <div className="flex items-center gap-2.5 border-b border-home-line pb-3">
                   <GroupIcon
                     className="size-4 shrink-0 text-home-accent-bright"
