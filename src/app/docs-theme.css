@@ -1,0 +1,39 @@
+/* Landing-page palette mapped onto Fumadocs' design tokens. This is the only
+   docs-specific stylesheet; Fumadocs keeps ownership of page layout, prose,
+   tables, code blocks, TOC, and sidebar geometry. */
+.dark {
+  --color-fd-background: var(--home-bg);
+  --color-fd-foreground: var(--home-text);
+  --color-fd-muted-foreground: var(--home-muted);
+  --color-fd-card: var(--home-panel);
+  --color-fd-card-foreground: var(--home-text);
+  --color-fd-popover: var(--home-panel-raised);
+  --color-fd-popover-foreground: var(--home-text);
+  --color-fd-muted: var(--home-panel-raised);
+  --color-fd-secondary: var(--home-panel-raised);
+  --color-fd-secondary-foreground: var(--home-text);
+  --color-fd-accent: var(--home-panel-hover);
+  --color-fd-accent-foreground: var(--home-text);
+  --color-fd-border: var(--home-line);
+  --color-fd-primary: var(--home-accent-bright);
+  --color-fd-primary-foreground: #05070c;
+  --color-fd-ring: var(--home-accent-bright);
+  --color-fd-overlay: rgba(3, 5, 9, 0.8);
+
+  /* Semantic callout colours, tuned against the navy surface. */
+  --color-fd-info: #60a5fa;
+  --color-fd-warning: #d6a45c;
+  --color-fd-error: #e07a7a;
+  --color-fd-success: #6fbf9b;
+  --color-fd-idea: #a5b4fc;
+}
+
+/* Fumadocs' sidebar theme is more specific than the bare `.dark` block, so
+   restate the few tokens the sidebar consumes. */
+.dark #nd-sidebar,
+.dark #nd-sidebar-mobile {
+  --color-fd-muted: var(--home-panel-raised);
+  --color-fd-secondary: var(--home-panel-raised);
+  --color-fd-secondary-foreground: var(--home-text);
+  --color-fd-muted-foreground: var(--home-muted);
+}

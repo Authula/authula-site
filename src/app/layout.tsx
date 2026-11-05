@@ -54,7 +54,7 @@ export default function Layout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${primaryFont.className} ${monoFont.variable}`}
+      className={`dark ${primaryFont.className} ${monoFont.variable}`}
       suppressHydrationWarning
     >
       <body className="flex flex-col min-h-screen">

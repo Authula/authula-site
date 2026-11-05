@@ -1,7 +1,8 @@
 @import "tailwindcss";
-@import "fumadocs-ui/css/ocean.css";
+@import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
 @import "tw-animate-css";
+@import "./docs-theme.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -223,8 +224,12 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    background-color: var(--home-bg);
+    color-scheme: dark;
+  }
   body {
-    @apply text-foreground;
+    @apply bg-home-bg text-home-text;
   }
 }
 
@@ -275,7 +280,7 @@ html.js [data-reveal="in"] {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-home-bg text-home-text;
   }
 }
 
