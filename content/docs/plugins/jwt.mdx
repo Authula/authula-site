@@ -1,32 +1,53 @@
 ---
 title: JWT Plugin
-description: JWKS-based JWT authentication with automatic key rotation and refresh token support for SPAs and mobile applications
+description: Issue Ed25519 JWTs with issuer and audience binding, publish JWKS signing keys, and rotate single-use refresh tokens with replay protection.
+icon: KeyRound
 ---
 
 ## Overview
 
-The JWT plugin provides JWKS-based JWT authentication with automatic key rotation and refresh token support. It is designed for SPAs and mobile applications, offering short-lived access tokens with long-lived refresh tokens, multiple signing algorithms, and public key distribution via a JWKS endpoint.
+The JWT plugin issues signed JWTs for authenticated users and machine clients, publishes the matching public keys through a JWKS endpoint, and manages rotating refresh tokens.
+
+Every token carries a configured issuer (`iss`) and audience (`aud`). Validation is fail-closed: a token that is missing either claim, or carries the wrong value, is rejected.
+
+The plugin does not authenticate requests by itself. Authentication is handled by other plugins, such as session, bearer, OAuth2, email/password, or magic link. Once authentication succeeds, the JWT plugin mints tokens and can write them into the JSON response.
+
+### Core Entities
+
+- **Signing key** — an Ed25519 key pair used to sign tokens and published through JWKS.
+- **Refresh token** — a hashed, single-use token that rotates on every successful refresh.
 
 ### Features
 
-- **Multiple Signing Algorithms** — EdDSA (default), RS256, PS256, ES256, ES512, ECDH-ES
-- **Automatic Key Rotation** — Rotates signing keys on configurable intervals with grace periods
-- **Token Pairs** — Short-lived access tokens (15m default) with long-lived refresh tokens (7d default)
-- **JWKS Endpoint** — Public key distribution via `/.well-known/jwks.json` for token verification
-- **Token Blacklisting** — Revoke tokens immediately when needed (requires Secondary Storage plugin)
-- **Refresh Token Rotation** — New refresh token issued on each refresh for security
-- **Grace Periods** — Smooth transitions during key rotation and refresh token reuse detection
+- **EdDSA signing** — Ed25519 keys generated and rotated by the plugin.
+- **JWKS endpoint** — publishes non-expired public keys at `/.well-known/jwks.json`.
+- **Access and refresh tokens** — 15-minute access tokens and 7-day refresh tokens by default.
+- **Issuer and audience binding** — every token carries `iss` and `aud`; both are validated on every access and refresh request.
+- **Atomic refresh rotation** — the old refresh token is revoked and the new one is stored in one transaction.
+- **Refresh-token validation** — signature, `iss`, `aud`, and `token_type` are checked before the stored record is read.
+- **Replay protection** — reusing a revoked refresh token never mints tokens; reuse after the grace period invalidates the session.
+- **Session expiry enforcement** — expired sessions are rejected during access-token validation and refresh.
+- **Separate token IDs** — access and refresh tokens receive different `jti` values.
+- **Machine tokens** — access-only tokens carrying `client_id`, plus optional `organization_id` and scopes.
+- **Reserved claims** — security claims cannot be overridden by extra claims.
+- **Optional blacklisting** — session and token revocation through the Secondary Storage plugin.
+- **Optional JWKS cache** — secondary-storage cache with database fallback.
+- **Security events** — refresh-token reuse throttling and malicious reuse events.
+- **No-store responses** — token responses are marked as non-cacheable.
 
 ---
 
 ## Configuration
+
+A present `[plugins.jwt]` section enables the plugin unless `enabled = false` is set explicitly.
 
 ### Standalone Mode
 
 ```toml
 [plugins.jwt]
 enabled = true
-algorithm = "eddsa"
+issuer = "http://localhost:8080/api/auth"
+audience = "authula"
 key_rotation_interval = "720h"
 key_rotation_grace_period = "1h"
 expires_in = "15m"
@@ -35,196 +56,480 @@ jwks_cache_ttl = "24h"
 refresh_grace_period = "10s"
 ```
 
+Durations use Go duration strings, for example `"15m"`, `"720h"`, or `"10s"`.
+
+| Option                      | Type     | Default                            | Description                                                                                         |
+| --------------------------- | -------- | ---------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `enabled`                   | boolean  | `true` when the section is present | Load or skip the plugin.                                                                            |
+| `issuer`                    | string   | `base_url + base_path`             | Token issuer (`iss`). The plugin fails to start when this is empty.                                 |
+| `audience`                  | string   | `"authula"`                        | Expected token audience (`aud`). The plugin fails to start when this is empty.                      |
+| `key_rotation_interval`     | duration | `"720h"`                           | Maximum age of the active signing key before rotation is checked.                                   |
+| `key_rotation_grace_period` | duration | `"1h"`                             | How long old keys remain published in JWKS after rotation.                                          |
+| `expires_in`                | duration | `"15m"`                            | Access token lifetime.                                                                              |
+| `refresh_expires_in`        | duration | `"168h"`                           | Refresh token lifetime.                                                                             |
+| `jwks_cache_ttl`            | duration | `"24h"`                            | TTL of the JWKS entry in secondary storage, when configured.                                        |
+| `refresh_grace_period`      | duration | `"10s"`                            | Window in which replay of a revoked refresh token is throttled instead of invalidating the session. |
+
 ### Library Mode
 
 ```go
 import (
-	jwtplugin "github.com/Authula/authula/plugins/jwt"
-	jwtplugintypes "github.com/Authula/authula/plugins/jwt/types"
+  "time"
+
+  jwtplugin "github.com/Authula/authula/plugins/jwt"
+  jwtplugintypes "github.com/Authula/authula/plugins/jwt/types"
 )
 
-jwtplugin.New(jwtplugintypes.JWTPluginConfig{
-	Enabled:                true,
-	Algorithm:              jwtplugintypes.JWTAlgEdDSA,
-	ExpiresIn:              15 * time.Minute,
-	KeyRotationInterval:    720 * time.Hour,
-	KeyRotationGracePeriod: time.Hour,
-	RefreshExpiresIn:       168 * time.Hour,
-	JWKSCacheTTL:           24 * time.Hour,
-	RefreshGracePeriod:     10 * time.Second,
-}),
+jwtPlugin := jwtplugin.New(jwtplugintypes.JWTPluginConfig{
+  Enabled:                true,
+  Issuer:                 "http://localhost:8080/api/auth",
+  Audience:               "authula",
+  KeyRotationInterval:    720 * time.Hour,
+  KeyRotationGracePeriod: time.Hour,
+  ExpiresIn:              15 * time.Minute,
+  RefreshExpiresIn:       168 * time.Hour,
+  JWKSCacheTTL:           24 * time.Hour,
+  RefreshGracePeriod:     10 * time.Second,
+})
 ```
 
-### Configuration Options
+The current implementation has no signing-algorithm option. Tokens are always signed with EdDSA (Ed25519).
 
-| Option                      | Type     | Default   | Description                                                    |
-| --------------------------- | -------- | --------- | -------------------------------------------------------------- |
-| `enabled`                   | boolean  | `true`    | Enable or disable the plugin                                   |
-| `algorithm`                 | string   | `"eddsa"` | Signing algorithm: `eddsa`, `rs256`, `ps256`, `es256`, `es512` |
-| `key_rotation_interval`     | duration | `"720h"`  | How often to rotate signing keys (30 days)                     |
-| `key_rotation_grace_period` | duration | `"1h"`    | Grace period for old key validity after rotation               |
-| `expires_in`                | duration | `"15m"`   | Access token TTL                                               |
-| `refresh_expires_in`        | duration | `"168h"`  | Refresh token TTL (7 days)                                     |
-| `jwks_cache_ttl`            | duration | `"24h"`   | JWKS cache TTL                                                 |
-| `refresh_grace_period`      | duration | `"10s"`   | Grace period for refresh token reuse detection                 |
+### Issuer and Audience
+
+`iss` identifies the Authula deployment that signed the token. When `issuer` is not set, it defaults to `base_url + base_path`.
+
+`aud` identifies the resource server that should accept the token. When `audience` is not set, it defaults to `authula`.
+
+The audience is not the client ID. A machine client is identified by the `client_id` claim (and by `sub`). Use `audience` to name the protected resource, not the caller.
+
+Rules:
+
+- Every user access token, user refresh token, and machine access token is minted with `iss` and `aud`.
+- Access-token validation requires `iss` to equal the configured issuer and `aud` to contain the configured audience.
+- Refresh-token validation requires the same `iss` and `aud`, plus `token_type=refresh_token`.
+- A token with an external or unknown audience is rejected, even if its signature is valid.
+- Changing `issuer` or `audience` invalidates every previously issued token.
+
+Set `issuer` explicitly before changing `base_url`. Otherwise the derived issuer changes and all existing tokens stop validating.
+
+### Hard Cutover
+
+Issuer and audience enforcement is a hard cutover:
+
+- Tokens minted before this change have no `iss` or `aud` and are rejected.
+- Access tokens and refresh tokens issued before the upgrade stop working immediately after deploy.
+- Users must sign in again. Machine clients must request new tokens.
+- There is no legacy-token flag and no grace period.
+
+Deploy during a maintenance window and tell integrators to re-mint their tokens.
 
 ---
 
 ## API Reference
 
-| Method | Path                     | Description                                 |
-| ------ | ------------------------ | ------------------------------------------- |
-| `GET`  | `/.well-known/jwks.json` | Public JWKS endpoint for token verification |
-| `POST` | `/token/refresh`         | Exchange refresh token for new token pair   |
+Routes are mounted under the configured `base_path`. The examples below use this table's route paths relative to that base path.
+
+| HTTP Method | Route Path               | Description        |
+| ----------- | ------------------------ | ------------------ |
+| `POST`      | `/token/refresh`         | Refresh token pair |
+| `GET`       | `/.well-known/jwks.json` | Get public JWKS    |
+
+### `POST /token/refresh`
+
+Request:
+
+```json
+{
+  "refresh_token": "eyJhbGciOiJFZERTQSJ9..."
+}
+```
+
+Successful response (`200 OK`):
+
+```json
+{
+  "access_token": "eyJhbGciOiJFZERTQSJ9...",
+  "refresh_token": "eyJhbGciOiJFZERTQSJ9...",
+  "token_type": "Bearer",
+  "expires_in": 900
+}
+```
+
+`expires_in` is the access-token lifetime in seconds.
+
+Response headers:
+
+```http
+Cache-Control: no-store
+Pragma: no-cache
+```
+
+Error responses:
+
+| Status                     | Condition                                                                                           | Body                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `422 Unprocessable Entity` | Invalid JSON or missing `refresh_token`.                                                            | `{"message": "..."}`                   |
+| `401 Unauthorized`         | The token has an invalid signature, issuer, audience, or `token_type`.                              | `{"message": "invalid refresh token"}` |
+| `401 Unauthorized`         | The token is unknown, revoked, or expired, belongs to a missing session, or the session is expired. | `{"message": "invalid refresh token"}` |
+| `401 Unauthorized`         | The `session_id` or `user_id` claim does not match the stored refresh-token record or session.      | `{"message": "invalid refresh token"}` |
+| `401 Unauthorized`         | A revoked token was replayed.                                                                       | `{"message": "invalid refresh token"}` |
+
+### `GET /.well-known/jwks.json`
+
+Returns the current non-expired public keys:
+
+```json
+{
+  "keys": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "kid": "9f8b...",
+      "x": "...",
+      "alg": "EdDSA"
+    }
+  ]
+}
+```
+
+Response header:
+
+```http
+Cache-Control: public, max-age=3600
+```
+
+Keys whose `expires_at` is in the past are excluded from this response.
 
 ---
 
 ## Database Schema
 
-### Table: `jwt_keys`
+### Table: `jwks`
 
-| Field         | Type      | Key | Description                                      |
-| ------------- | --------- | --- | ------------------------------------------------ |
-| `id`          | string    | PK  | Unique identifier for the key                    |
-| `key_id`      | string    | -   | JWKS key ID (kid)                                |
-| `public_key`  | string    | -   | PEM-encoded public key                           |
-| `private_key` | string    | -   | PEM-encoded private key                          |
-| `algorithm`   | string    | -   | Signing algorithm used                           |
-| `created_at`  | timestamp | -   | Key creation time                                |
-| `expires_at`  | timestamp | -   | Key expiration time (after grace period)         |
-| `is_active`   | boolean   | -   | Whether this key is currently active for signing |
+| Field         | Type       | Key | Description                                                    |
+| ------------- | ---------- | --- | -------------------------------------------------------------- |
+| `id`          | UUID       | PK  | Key ID, also used as the JWKS `kid`.                           |
+| `public_key`  | string     | -   | PEM-encoded Ed25519 public key.                                |
+| `private_key` | string     | -   | Encrypted PEM-encoded Ed25519 private key.                     |
+| `created_at`  | timestamp  | -   | Key creation time.                                             |
+| `expires_at`  | timestamp? | -   | When the key stops being published. `NULL` for the active key. |
 
-### Table: `jwt_refresh_tokens`
+### Table: `refresh_tokens`
 
-| Field        | Type      | Key | Description                                |
-| ------------ | --------- | --- | ------------------------------------------ |
-| `id`         | string    | PK  | Unique identifier for the refresh token    |
-| `user_id`    | string    | FK  | Reference to the user                      |
-| `session_id` | string    | FK  | Reference to the session                   |
-| `token`      | string    | -   | Hashed refresh token                       |
-| `expires_at` | timestamp | -   | Token expiration time                      |
-| `revoked_at` | timestamp | -   | When the token was revoked (if applicable) |
-| `created_at` | timestamp | -   | Record creation time                       |
+| Field                | Type       | Key | Description                                                               |
+| -------------------- | ---------- | --- | ------------------------------------------------------------------------- |
+| `id`                 | UUID       | PK  | Refresh token record ID.                                                  |
+| `session_id`         | UUID       | FK  | Reference to the session.                                                 |
+| `token_hash`         | string     | -   | SHA-256 hash of the refresh token. The raw token is never stored.         |
+| `expires_at`         | timestamp  | -   | Refresh token expiration time.                                            |
+| `is_revoked`         | boolean    | -   | Whether the token has been rotated or revoked.                            |
+| `revoked_at`         | timestamp? | -   | When the token was revoked.                                               |
+| `last_reuse_attempt` | timestamp? | -   | Retained for compatibility; the current rotation logic does not write it. |
+| `created_at`         | timestamp  | -   | Record creation time.                                                     |
 
-> Migrations are automatically handled when the plugin is initialized.
+In PostgreSQL and MySQL, `session_id` references `sessions(id)` with `ON DELETE CASCADE`. SQLite does not enforce the foreign key.
+
+Refresh tokens are hashed at rest. JWT private keys are encrypted at rest.
+
+Migrations are automatically handled when the plugin is initialized.
+
+### Database Hooks
+
+The JWT plugin does not expose database hooks.
 
 ---
 
 ## Plugin Capabilities
 
-The JWT plugin provides the following capabilities:
+The JWT plugin provides the following capabilities and lifecycle behavior:
 
-- **jwt.respond_json** — Sends JWT tokens in JSON response after successful authentication
+- **Token issuance** — mints tokens automatically after a successful authentication when the request context contains an actor and, for users, a session.
+- **`jwt.respond_json`** — writes the minted tokens into the JSON response. This capability must be listed in the route mapping for routes that should return tokens.
+- **Issuer and audience enforcement** — every minted token is bound to `iss` and `aud`; every validated token must match them.
+- **Refresh-token rotation** — atomically revokes the old refresh token and stores a new one.
+- **Replay protection** — rejects revoked refresh tokens and invalidates the session on reuse after the grace period.
+- **Signing-key rotation** — rotates Ed25519 keys when the active key is older than `key_rotation_interval`.
+- **Security events** — emits refresh-token reuse events when an event bus is configured.
 
-### Token Lifecycle
+### Token Model
 
-```
-┌─────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Sign In   │────▶│   Access     │────▶│   Refresh    │
-│   Success   │     │   Token      │     │   Token      │
-└─────────────┘     └──────┬───────┘     └──────┬───────┘
-                           │                      │
-                           ▼                      │
-                    ┌──────────────┐              │
-                    │   API Calls  │──────────────┘
-                    │   (15 min)   │    When expired
-                    └──────┬───────┘
-                           │
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-        ┌──────────┐ ┌──────────┐ ┌──────────┐
-        │  Valid   │ │ Expired  │ │ Sign Out │
-        │  Request │ │  Token   │ │  (Manual)│
-        └────┬─────┘ └────┬─────┘ └────┬─────┘
-             │            │            │
-             ▼            ▼            ▼
-        ┌──────────┐ ┌──────────┐ ┌──────────┐
-        │ Continue │ │ Refresh  │ │  Revoke  │
-        │          │ │ Endpoint │ │  Tokens  │
-        └──────────┘ └────┬─────┘ └──────────┘
-                          │
-                          ▼
-                   ┌──────────────┐
-                   │  New Token   │
-                   │    Pair      │
-                   └──────────────┘
-```
+#### Access Token Claims
 
-### Key Rotation Lifecycle
+| Claim        | Description                                               |
+| ------------ | --------------------------------------------------------- |
+| `iss`        | Issuer. Defaults to `base_url + base_path`.               |
+| `aud`        | Audience. Defaults to `authula`.                          |
+| `sub`        | User ID.                                                  |
+| `user_id`    | User ID.                                                  |
+| `session_id` | Session the token belongs to.                             |
+| `token_type` | `access_token`.                                           |
+| `actor_type` | `user`.                                                   |
+| `jti`        | Unique token ID, separate from the refresh token's `jti`. |
+| `iat`        | Issued-at time.                                           |
+| `exp`        | Expiration time.                                          |
 
-```
-┌─────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Key Gen   │────▶│   Active     │────▶│   Rotation   │
-│   (Init)    │     │   Signing    │     │   (Interval) │
-└─────────────┘     └──────┬───────┘     └──────┬───────┘
-                           │                      │
-                           │               ┌──────┴──────┐
-                           │               ▼             ▼
-                           │        ┌──────────┐  ┌──────────┐
-                           │        │ New Key  │  │ Old Key  │
-                           │        │ (Active) │  │ (Grace)  │
-                           │        └────┬─────┘  └────┬─────┘
-                           │             │             │
-                           └─────────────┴─────────────┘
-                                         │
-                                         ▼
-                                  ┌──────────────┐
-                                  │   Old Key    │
-                                  │  (Expired)   │
-                                  └──────────────┘
-```
+Extra actor claims are copied into the token, except for reserved claims. Reserved claims are `iss`, `aud`, `sub`, `exp`, `iat`, `nbf`, `jti`, `token_type`, `actor_type`, `user_id`, `session_id`, and `client_id`. Reserved claims cannot be overridden by extra claims.
 
-### How to Use
+`organization_id` is the canonical organization/tenant identifier. Custom claims such as `organization_id` and `scopes` may be supplied as extras when present on the actor.
 
-Enable JWT responses on authentication routes:
+#### Refresh Token Claims
+
+| Claim        | Description                                               |
+| ------------ | --------------------------------------------------------- |
+| `iss`        | Issuer. Defaults to `base_url + base_path`.               |
+| `aud`        | Audience. Defaults to `authula`.                          |
+| `sub`        | User ID.                                                  |
+| `user_id`    | User ID.                                                  |
+| `session_id` | Session the token belongs to.                             |
+| `token_type` | `refresh_token`.                                          |
+| `actor_type` | `user`.                                                   |
+| `jti`        | Unique token ID, different from the access token's `jti`. |
+| `iat`        | Issued-at time.                                           |
+| `exp`        | Expiration time.                                          |
+
+Non-reserved custom claims are carried forward when the token is rotated. Registered claims, including `iss`, `aud`, `sub`, `user_id`, `session_id`, `iat`, `exp`, `nbf`, `jti`, `token_type`, `actor_type`, `organization_id`, `scopes`, and `client_id`, are not copied. New tokens are minted with the current issuer and audience.
+
+#### Machine Token Claims
+
+| Claim             | Description                                 |
+| ----------------- | ------------------------------------------- |
+| `iss`             | Issuer. Defaults to `base_url + base_path`. |
+| `aud`             | Audience. Defaults to `authula`.            |
+| `sub`             | Client ID.                                  |
+| `client_id`       | Machine client ID. Same value as `sub`.     |
+| `token_type`      | `access_token`.                             |
+| `actor_type`      | `machine`.                                  |
+| `organization_id` | Optional organization binding.              |
+| `scopes`          | Optional machine scopes.                    |
+| `jti`             | Unique token ID.                            |
+| `iat`             | Issued-at time.                             |
+| `exp`             | Expiration time.                            |
+
+Machine tokens never include a refresh token.
+
+#### Access Token Validation
+
+1. Verify the signature against JWKS.
+2. Validate `exp`.
+3. Require `iss` and reject it when it does not equal the configured issuer.
+4. Require `aud` and reject it when it does not contain the configured audience.
+5. Require `token_type=access_token`.
+6. Require `actor_type` to be `user` or `machine`. Missing or unknown values are rejected.
+7. Reject a blacklisted `jti`, when blacklisting is enabled.
+8. For users: require `user_id` and `session_id`, reject a blacklisted session, and reject a missing or expired session.
+9. For machines: require `sub`; return `organization_id` and `scopes` when present.
+
+Registered claims are not copied into `Actor.Claims`. Non-registered custom claims are passed through.
+
+### Refresh-Token Rotation
+
+A successful refresh follows this sequence:
+
+1. Parse and validate the refresh JWT: signature, `iss`, `aud`, and `token_type=refresh_token`.
+2. Hash the incoming refresh token with SHA-256 and look up the stored record.
+3. Reject unknown, revoked, or expired records.
+4. Load the session and reject it when missing or expired.
+5. Require `session_id` to match the stored record and `user_id` to match the session owner.
+6. Carry non-reserved custom claims from the old refresh token.
+7. Generate a new access token and refresh token with new `jti` values and current `iss`/`aud`.
+8. Atomically revoke the old token and insert the new record in one transaction.
+9. Return the new token pair.
+
+Refresh-token JWT expiry is not evaluated during parsing. The stored `refresh_tokens.expires_at` value and the session expiry are authoritative. This keeps reuse detection working for tokens whose record has not yet expired.
+
+If no row is updated, another request already rotated the token. The service re-reads the record and handles the request as token reuse. It never performs a second rotation.
+
+#### Replay Handling
+
+A revoked refresh token is never exchanged for credentials.
+
+| When                          | Behavior                                                                                                                     | Event                       |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| Within `refresh_grace_period` | Reject with `401`. No new tokens. Session stays active.                                                                      | `jwt.token.reuse.throttled` |
+| After `refresh_grace_period`  | Reject with `401`, revoke every refresh token for the session, blacklist the session when available, and delete the session. | `jwt.token.reuse.malicious` |
+
+After malicious reuse, the user must sign in again.
+
+The `jwt.token.reuse.recovered` event type and constant remain for compatibility, but the recovery flow has been removed and the event is no longer emitted.
+
+### Key Management and Rotation
+
+At initialization:
+
+1. If no key exists, an Ed25519 key pair is generated.
+2. The private key is encrypted with the application secret and stored.
+3. The public key is stored in PEM form.
+4. If the newest key is older than `key_rotation_interval`, rotation runs.
+
+Rotation:
+
+1. Every existing non-expired key is marked with `expires_at = now + key_rotation_grace_period`.
+2. A new Ed25519 key pair is generated, encrypted, and stored.
+3. The JWKS cache is invalidated and repopulated.
+
+JWKS contains keys with no expiry or a future expiry. Tokens signed with an old key remain verifiable until that key's grace period ends. After expiry, the key is omitted from JWKS.
+
+Expired key rows are not deleted automatically. `PurgeExpiredKeys` can remove keys that expired more than 24 hours ago, but the plugin does not schedule it.
+
+Rotation is checked only during plugin initialization. A long-running process keeps signing with its current key until it restarts or is redeployed.
+
+### Events
+
+| Event                       | When                                            | Useful Payload                                                                         |
+| --------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `jwt.token.reuse.throttled` | Revoked token replayed inside the grace window. | `session_id`, `token_hash`, `delta_ms`, `grace_period_config`, `metadata`, `timestamp` |
+| `jwt.token.reuse.malicious` | Revoked token replayed after the grace window.  | Same fields; the session was invalidated.                                              |
+
+Events are published asynchronously when an event bus is configured. Audit metadata supports `client_ip`, `user_agent`, and `device_id`.
+
+### Example Usage
+
+#### Standalone Mode
 
 ```toml
 [[route_mappings]]
-method = "POST"
-path = "/auth/sign-in"
-plugins = ["bearer.auth.optional", "jwt.respond_json"]
+paths = [
+  "POST:/email-password/sign-in",
+  "POST:/email-password/sign-up",
+]
+plugins = ["jwt.respond_json"]
 ```
 
-After successful authentication, the response will include:
+Successful authentication then returns:
 
 ```json
 {
   "access_token": "eyJhbGciOiJFZERTQSJ9...",
+  "token_type": "Bearer",
+  "expires_in": 900,
   "refresh_token": "eyJhbGciOiJFZERTQSJ9..."
 }
 ```
 
-### Algorithm Support
+Machine authentication returns only `access_token`, `token_type`, and `expires_in`.
 
-| Algorithm | Type                            | Recommended Use                     |
-| --------- | ------------------------------- | ----------------------------------- |
-| EdDSA     | Edwards-curve Digital Signature | **Default** — Fast, secure, modern  |
-| RS256     | RSA with SHA-256                | Legacy compatibility                |
-| PS256     | RSA-PSS with SHA-256            | Enhanced RSA security               |
-| ES256     | ECDSA with P-256                | Mobile/IoT constrained environments |
-| ES512     | ECDSA with P-521                | Maximum security requirements       |
-| ECDH-ES   | Elliptic Curve Diffie-Hellman   | Key exchange only, not for signing  |
+The response hook deliberately skips requests that already set a redirect and responses that were already handled.
 
-**Note**: ECDH-ES is available for key exchange but cannot be used for JWT signing. May be removed in a future version.
+#### Library Mode
+
+```go
+import (
+    authulaconfig "github.com/Authula/authula/config"
+    authulamodels "github.com/Authula/authula/models"
+    jwtplugin "github.com/Authula/authula/plugins/jwt"
+)
+
+config := authulaconfig.NewConfig(
+  authulaconfig.WithRouteMappings([]authulamodels.RouteMapping{
+    {
+      Paths: []string{
+        "POST:/email-password/sign-in",
+        "POST:/email-password/sign-up",
+      },
+      Plugins: []string{
+        jwtplugin.HookIDJWTRespondJSON.String(),
+      },
+    },
+  }),
+)
+```
 
 ---
 
-## Dependencies
+## Security Recommendations
 
-- **Secondary Storage** (optional) — Enables token blacklisting for immediate revocation
+- **Use HTTPS.** Access and refresh tokens are bearer credentials.
+- **Set `issuer` explicitly in production.** This prevents a `base_url` change from silently changing the issuer.
+- **Keep `issuer` and `audience` stable.** Changing either invalidates every existing token.
+- **Plan the hard cutover.** Tokens issued before the upgrade are rejected. Deploy during a maintenance window and ask users and integrators to re-authenticate.
+- **Keep access tokens short-lived.** The default is 15 minutes.
+- **Keep refresh rotation enabled.** Clients must treat refresh tokens as single-use.
+- **Store refresh tokens securely.** The current API returns them in the JSON response body. Treat them as secrets and avoid exposing them to untrusted scripts or logs.
+- **Use secondary storage in production.** It enables blacklisting and the JWKS cache.
+- **Tune the refresh grace period.** A small window (5–10 seconds) tolerates retries while treating later replays as attacks.
+- **Serialize refreshes on the client.** Concurrent refreshes with the same token can trigger the reuse path.
+- **Restart or redeploy regularly** if you depend on key rotation, because rotation is checked only at startup.
+- **Keep the key grace period longer than the access-token lifetime.** Tokens signed just before rotation must remain verifiable.
+- **Validate `iss` and `aud` in downstream resource servers.** A resource server that accepts Authula tokens must check both, not only the signature.
+- **Use `organization_id` for organization or tenant scoping.** Do not introduce a separate tenant claim.
+- **Protect private keys.** JWT private keys are encrypted at rest with the application secret. Protect that secret.
 
 ---
 
-## Client Plugin
+## Troubleshooting
 
-If you're using the [Authula SDK](https://github.com/Authula/authula-node-sdk), add the plugin to the SDK like so:
+### All tokens are rejected after upgrading
+
+This is expected. Tokens issued before the upgrade have no `iss` or `aud`. Users must sign in again and machine clients must request new tokens. See [Hard Cutover](#hard-cutover).
+
+### Tokens are not returned after sign-in
+
+- Confirm `jwt.respond_json` is present in the route mapping for the authentication route.
+- The response hook skips requests that set a redirect or are already handled.
+- Confirm the JWT plugin is enabled and the authentication flow set an actor and session.
+
+### Refresh returns `401 invalid refresh token`
+
+- The token may have an invalid signature, issuer, audience, or `token_type`.
+- The refresh token may be unknown, expired, or already rotated.
+- The associated session may be missing or expired.
+- The `session_id` or `user_id` claim may not match the stored record or session.
+- The token may have been replayed after `refresh_grace_period`, which invalidates the session.
+
+### Access is rejected because of the issuer
+
+- Confirm `issuer` matches the value used when the token was minted.
+- Confirm `base_url` and `base_path` have not changed.
+- If `issuer` is not configured, the plugin derives it from `base_url + base_path`.
+
+### Access is rejected because of the audience
+
+- Confirm the token's `aud` contains the configured `audience`.
+- A token minted for an external client or resource server is rejected by Authula's bearer plugin.
+- If you run downstream services that validate Authula tokens, they must expect the same audience.
+
+### Automatic key rotation is not happening
+
+Key rotation is evaluated during plugin initialization only. Restart or redeploy the process, or rotate keys through an operational process.
+
+### An old signing key is missing from JWKS
+
+Old keys are published until `expires_at`. Once `key_rotation_grace_period` has elapsed, the key is excluded from JWKS.
+
+### Blacklisting is unavailable
+
+Configure the Secondary Storage plugin. Without it, the blacklist service is not created and the JWKS cache is disabled.
+
+### Unexpected `jwt.token.reuse.malicious` events
+
+Clients may be refreshing concurrently with the same token, or a token may have been replayed. Ensure clients serialize refresh requests and replace the stored refresh token after every successful refresh.
+
+---
+
+## Notes
+
+- The current implementation supports EdDSA only.
+- Every token carries and validates `iss` and `aud`.
+- `aud` identifies the resource server, not the client. Machine client identity is carried by `client_id`.
+- `organization_id` is the canonical organization/tenant identifier. There is no separate `tenant_id` claim.
+- There is no background key-rotation scheduler.
+- There is no scheduled refresh-token or expired-key cleanup. PostgreSQL and MySQL cascade refresh-token deletion when a session is deleted; SQLite does not enforce the foreign key.
+- Refresh tokens are returned in the response body, not issued as HttpOnly cookies.
+- No DPoP or mTLS binding is implemented.
+- The `jwt.token.reuse.recovered` constant and event type remain in the codebase for compatibility, but the event is not emitted.
+- Changing `issuer` or `audience` invalidates all existing tokens. Treat it as a hard cutover.
+
+### Client SDK
+
+When using the [Authula Node SDK](https://github.com/Authula/authula-node-sdk), register the JWT plugin:
 
 ```typescript
 import { createClient } from "authula";
 import { JWTPlugin } from "authula/plugins";
 
 export const authulaClient = createClient({
-  url: "http://localhost:8080/auth",
+  url: "http://localhost:8080/api/auth",
   plugins: [
     // other plugins...
     new JWTPlugin(),
@@ -232,15 +537,4 @@ export const authulaClient = createClient({
 });
 ```
 
----
-
-## Security Recommendations
-
-- **Use EdDSA by Default** — EdDSA provides the best balance of security and performance for most use cases
-- **Enable Key Rotation** — Set `key_rotation_interval` to 30 days or less for production environments
-- **Short Access Token TTL** — Keep `expires_in` short (15 minutes or less) to minimize exposure if tokens are compromised
-- **Refresh Token Rotation** — Each refresh issues a new refresh token, invalidating the old one to detect replay attacks
-- **Token Blacklisting** — Use the Secondary Storage plugin to enable immediate token revocation on sign-out
-- **Secure JWKS Caching** — Set appropriate `jwks_cache_ttl` to balance performance and key rotation responsiveness
-- **HTTPS Required** — Always use HTTPS in production to protect tokens in transit
-- **Grace Period Tuning** — Adjust `key_rotation_grace_period` and `refresh_grace_period` based on your token distribution needs
+Use the configured API base path in the client URL.
