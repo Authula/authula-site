@@ -118,7 +118,7 @@ export function DeveloperExperienceSection() {
 
           <Link
             href="/docs/integrations/adapters"
-            className="group mt-6 inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-home-accent-bright transition-colors hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel focus-visible:outline-none"
+            className="group mt-6 inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-home-accent-bright transition-colors hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg focus-visible:outline-none"
           >
             Read the integration guide
             <ArrowRight

@@ -284,6 +284,45 @@ html.js [data-reveal="in"] {
   }
 }
 
+/* Global scrollbars: thin, dark, and tinted with the Authula palette. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--home-line-strong) var(--home-bg);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--home-line-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-color: var(--home-line-strong);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--home-muted);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-color: var(--home-accent);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }

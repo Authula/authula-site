@@ -20,10 +20,11 @@ const sectionTones: Record<string, SectionTone> = {
   architecture: "default",
   features: "panel",
   plugins: "default",
-  developers: "panel",
-  production: "default",
-  "get-started": "panel",
-  community: "default",
+  integrations: "panel",
+  developers: "default",
+  production: "panel",
+  "get-started": "default",
+  community: "panel",
 };
 
 const toneClasses: Record<SectionTone, string> = {

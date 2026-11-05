@@ -74,7 +74,7 @@ export function Hero() {
     <section
       id="top"
       aria-labelledby="hero-title"
-      className="relative isolate scroll-mt-24 overflow-hidden bg-home-bg pt-24 pb-16 md:pb-20 lg:pb-24"
+      className="relative isolate flex min-h-[calc(100svh-3.5rem)] scroll-mt-24 flex-col justify-center overflow-hidden bg-home-bg py-16 md:py-20"
     >
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
         <div className="home-grid-lines absolute inset-0" />

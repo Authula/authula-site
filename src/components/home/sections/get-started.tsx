@@ -106,7 +106,7 @@ export function GetStarted() {
                       {step.link ? (
                         <Link
                           href={step.link.href}
-                          className="group mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-home-accent-bright transition-colors hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel focus-visible:outline-none"
+                          className="group mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-sm text-sm font-medium text-home-accent-bright transition-colors hover:text-home-text focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg focus-visible:outline-none"
                         >
                           {step.link.label}
                           <ArrowRight
@@ -174,7 +174,7 @@ export function GetStarted() {
                   </>
                 );
                 const className = cn(
-                  "h-11 w-full gap-2 rounded-[10px] px-4 text-sm font-medium transition-all active:translate-y-px focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-panel sm:w-auto",
+                  "h-11 w-full gap-2 rounded-[10px] px-4 text-sm font-medium transition-all active:translate-y-px focus-visible:ring-2 focus-visible:ring-home-accent-bright focus-visible:ring-offset-2 focus-visible:ring-offset-home-bg sm:w-auto",
                   ctaStyles[index] ?? ctaStyles[1],
                 );
 

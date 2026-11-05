@@ -27,7 +27,7 @@ export function ProductionSection() {
         <div className="mt-10 grid gap-4 md:mt-14 md:grid-cols-2 md:gap-5">
           {productionPillars.map((pillar, index) => (
             <Reveal key={pillar.id} delay={index * 0.06} className="h-full">
-              <div className="h-full rounded-[16px] border border-home-line bg-home-panel p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] md:p-6">
+              <div className="h-full rounded-[16px] border border-home-line bg-home-panel-raised/70 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] md:p-6">
                 <div className="flex items-start gap-3">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-home-accent-line bg-home-accent-soft text-home-accent-bright">
                     <pillar.icon className="size-4" aria-hidden="true" />
@@ -64,7 +64,7 @@ export function ProductionSection() {
               Deployment
             </h3>
 
-            <div className="grid overflow-hidden rounded-[14px] border border-home-line bg-home-panel md:grid-cols-3">
+            <div className="grid overflow-hidden rounded-[14px] border border-home-line bg-home-panel-raised/70 md:grid-cols-3">
               {deploymentTargets.map((target) => (
                 <div
                   key={target.id}

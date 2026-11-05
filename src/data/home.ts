@@ -719,6 +719,7 @@ export const footerColumns: readonly FooterColumn[] = [
       { label: "Architecture", href: "/#architecture" },
       { label: "Capabilities", href: "/#features" },
       { label: "Plugins", href: "/#plugins" },
+      { label: "Integrations", href: "/#integrations" },
       { label: "Developers", href: "/#developers" },
       { label: "Production", href: "/#production" },
     ],

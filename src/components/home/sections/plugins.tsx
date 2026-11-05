@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { pluginExplainers, pluginGuide, pluginLifecycleSteps, sectionCopy } from "@/data/home";
+import { cn } from "@/lib/utils";
 
 import { PluginMap } from "../plugin-map";
 import { Reveal } from "../reveal";
@@ -23,35 +24,12 @@ export function PluginsSection() {
         />
       </Reveal>
 
-      <div className="mt-10 grid items-start gap-10 md:mt-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-12">
-        <div className="flex min-w-0 flex-col gap-6">
-          <Reveal>
-            <PluginMap />
-          </Reveal>
+      <div className="mt-10 grid grid-cols-1 gap-10 md:mt-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-12">
+        <Reveal className="min-w-0">
+          <PluginMap />
+        </Reveal>
 
-          <Reveal delay={0.08}>
-            <div>
-              <h3 className={labelClassName}>How a plugin connects</h3>
-              <ol className="mt-3 flex flex-col gap-3">
-                {pluginLifecycleSteps.map((step, index) => (
-                  <li key={step.label} className="flex gap-3">
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-home-line bg-white/[0.02] text-xs text-home-muted-strong">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-medium text-home-text">{step.label}</p>
-                      <p className="mt-0.5 text-xs leading-relaxed text-home-muted">
-                        {step.description}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </Reveal>
-        </div>
-
-        <Reveal delay={0.1}>
+        <Reveal delay={0.1} className="order-3 min-w-0 lg:order-2">
           <div className="flex min-w-0 flex-col gap-8">
             <ul className="grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2">
               {pluginExplainers.map((explainer) => {
@@ -86,6 +64,65 @@ export function PluginsSection() {
                 </Link>
               </Button>
             </div>
+          </div>
+        </Reveal>
+
+        {/* Keep the lifecycle steps under the map on small screens, then span the full row below both columns on desktop. */}
+        <Reveal delay={0.16} className="order-2 min-w-0 lg:order-3 lg:col-span-2">
+          <div className="border-t border-home-line pt-8">
+            <div className="flex items-center justify-between gap-3">
+              <h3 id="plugin-lifecycle-heading" className={labelClassName}>
+                How a plugin connects
+              </h3>
+              <span className="font-mono text-xs text-home-accent-bright">
+                {pluginLifecycleSteps.length} steps
+              </span>
+            </div>
+
+            <ol
+              aria-labelledby="plugin-lifecycle-heading"
+              className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-4"
+            >
+              {pluginLifecycleSteps.map((step, index) => {
+                const isLast = index === pluginLifecycleSteps.length - 1;
+
+                return (
+                  <li
+                    key={step.label}
+                    className={cn(
+                      "flex min-w-0 gap-3 rounded-[14px] border p-4 lg:flex-col lg:gap-2.5",
+                      isLast
+                        ? "border-home-accent-line bg-home-accent-soft"
+                        : "border-home-line bg-home-panel-raised/60",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex size-7 shrink-0 items-center justify-center rounded-full border text-xs",
+                        isLast
+                          ? "border-home-accent-line bg-home-panel text-home-accent-bright"
+                          : "border-home-line bg-white/[0.02] text-home-muted-strong",
+                      )}
+                    >
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <div className="min-w-0">
+                      <p
+                        className={cn(
+                          "text-[13px] font-medium",
+                          isLast ? "text-home-accent-bright" : "text-home-text",
+                        )}
+                      >
+                        {step.label}
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-home-muted">
+                        {step.description}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
           </div>
         </Reveal>
       </div>

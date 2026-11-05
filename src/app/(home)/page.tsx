@@ -8,6 +8,7 @@ import { DeveloperExperienceSection } from "@/components/home/sections/developer
 import { Footer } from "@/components/home/sections/footer";
 import { GetStarted } from "@/components/home/sections/get-started";
 import { Hero } from "@/components/home/sections/hero";
+import { IntegrationsSection } from "@/components/home/sections/integrations";
 import { PluginsSection } from "@/components/home/sections/plugins";
 import { ProductionSection } from "@/components/home/sections/production";
 
@@ -48,6 +49,7 @@ export default function HomePage() {
         <Architecture />
         <CapabilitiesSection />
         <PluginsSection />
+        <IntegrationsSection />
         <DeveloperExperienceSection />
         <ProductionSection />
         <GetStarted />
