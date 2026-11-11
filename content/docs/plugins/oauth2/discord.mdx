@@ -1,7 +1,7 @@
 ---
 title: Discord
 description: Guide on how to set up Discord authentication using Authula.
-icon: /icons/discord.svg
+icon: /icons/providers/discord.svg
 ---
 
 **Note:** This guide uses Discord OAuth2 for user sign-in, which is recommended by Discord for new integrations.
@@ -42,7 +42,6 @@ enabled = true
 client_id = "your-client-id"
 client_secret = "your-client-secret"
 redirect_url = "http://localhost:8080/auth/oauth2/callback/discord"
-scopes = []
 ```
 
 #### Library Mode
@@ -54,6 +53,7 @@ import (
 
   authula "github.com/Authula/authula"
   authulaconfig "github.com/Authula/authula/config"
+  authulaenv "github.com/Authula/authula/env"
   authulamodels "github.com/Authula/authula/models"
   oauth2plugin "github.com/Authula/authula/plugins/oauth2"
   oauth2plugintypes "github.com/Authula/authula/plugins/oauth2/types"
@@ -70,6 +70,7 @@ func main() {
       },
     }),
   )
+
   auth := authula.New(&authula.AuthConfig{
     Config:  config,
     Plugins: []authulamodels.Plugin{
@@ -86,6 +87,9 @@ func main() {
       }),
     },
   })
+
+  // Start the server and mount the handler
+  log.Fatal(http.ListenAndServe(":8080", auth.Handler()))
 }
 ```
 
