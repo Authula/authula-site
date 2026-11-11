@@ -1,0 +1,213 @@
+---
+title: Microsoft
+description: Guide on how to set up Microsoft authentication using Authula and Microsoft Graph.
+icon: /icons/providers/microsoft-entra.svg
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+
+<Steps>
+<Step>
+
+### Obtain Microsoft credentials
+
+1. Go to the [Microsoft Entra admin center](https://entra.microsoft.com/).
+2. Navigate to **Identity** > **Applications** > **App registrations**.
+3. Click **New registration**.
+4. Give your application a name.
+5. Under **Supported account types**, choose the account types you want to support:
+   - Accounts in any organizational directory and personal Microsoft accounts.
+   - Accounts in any organizational directory (work or school accounts).
+   - Personal Microsoft accounts only.
+6. Under **Redirect URI**, select **Web** and enter your Authula callback URL:
+
+   ```bash
+   # Assuming base path is /api/auth
+   http://localhost:8080/api/auth/oauth2/callback/microsoft
+   ```
+
+   For production, replace localhost with the base URL of your Authula server (e.g. `https://api.yourdomain.com`).
+
+7. Click **Register**.
+8. Navigate to **Certificates & secrets** and create a new client secret.
+9. Note the **Application (client) ID** and generated **Client Secret**.
+
+</Step>
+
+<Step>
+
+### Configure API permissions
+
+Authula uses the Microsoft Graph `/me` endpoint to retrieve the authenticated user's profile information.
+
+1. Navigate to **API permissions** in your application registration.
+2. Click **Add a permission**.
+3. Select **Microsoft Graph**.
+4. Select **Delegated permissions**.
+5. Search for and add `User.Read`.
+6. Click **Add permissions**.
+
+The `User.Read` permission allows Authula to retrieve the signed-in user's basic profile information.
+
+</Step>
+
+<Step>
+
+### Configure the provider
+
+Microsoft uses its own OAuth2 authorization and token endpoints. Authula also needs to know where to retrieve the authenticated user's information.
+
+The following configuration uses:
+
+- **Authorization URL:** `https://login.microsoftonline.com/common/oauth2/v2.0/authorize`
+- **Token URL:** `https://login.microsoftonline.com/common/oauth2/v2.0/token`
+- **User Info URL:** `https://graph.microsoft.com/v1.0/me`
+
+The `/common` tenant endpoint supports both organizational and personal Microsoft accounts. You can restrict authentication to a specific tenant by setting the `MICROSOFT_TENANT_ID` environment variable.
+
+Supported tenant values include:
+
+- `common` – Organizational and personal Microsoft accounts.
+- `organizations` – Organizational accounts only.
+- `consumers` – Personal Microsoft accounts only.
+- A specific Microsoft Entra tenant ID – Restricts authentication to that tenant.
+
+#### Standalone Mode
+
+Add the following to your `config.toml`:
+
+```toml
+# SECURITY NOTE: It is recommended to set the client_secret via
+# environment variables rather than hardcoding it here.
+
+[plugins.oauth2.providers.microsoft]
+enabled = true
+client_id = "your-client-id"
+client_secret = "your-client-secret"
+redirect_url = "http://localhost:8080/auth/oauth2/callback/microsoft"
+# Optional
+tenant_id = "common"
+```
+
+**Note:** Microsoft Graph's `mail` property can be null for some accounts. If you need to support those accounts, consider implementing a fallback to `userPrincipalName` when `mail` is unavailable.
+
+#### Library Mode
+
+```go
+import (
+  "fmt"
+  "os"
+
+  authula "github.com/Authula/authula"
+  authulaconfig "github.com/Authula/authula/config"
+  authulaenv "github.com/Authula/authula/env"
+  authulamodels "github.com/Authula/authula/models"
+  oauth2plugin "github.com/Authula/authula/plugins/oauth2"
+  oauth2plugintypes "github.com/Authula/authula/plugins/oauth2/types"
+)
+
+func main() {
+  config := authulaconfig.NewConfig(
+    authulaconfig.WithSecurity(authulamodels.SecurityConfig{
+      // Make sure to configure CORS and Trusted Origins appropriately
+      TrustedOrigins: []string{"your frontend origin"},
+      CORS: authulamodels.CORSConfig{
+        AllowCredentials: true,
+        AllowedOrigins:   []string{"your frontend origin"},
+      },
+    }),
+  )
+
+  auth := authula.New(&authula.AuthConfig{
+    Config: config,
+    Plugins: []authulamodels.Plugin{
+      oauth2plugin.New(oauth2plugintypes.OAuth2PluginConfig{
+        Enabled: true,
+        Providers: map[string]oauth2plugintypes.ProviderConfig{
+          "microsoft": {
+            Enabled:      true,
+            ClientID:     os.Getenv(authulaenv.EnvMicrosoftClientID),
+            ClientSecret: os.Getenv(authulaenv.EnvMicrosoftClientSecret),
+            RedirectURL:  fmt.Sprintf("%s%s/oauth2/callback/microsoft", config.BaseURL, config.BasePath),
+            // Optional
+            TenantID: new("common"),
+          },
+        },
+      }),
+    },
+  })
+
+  // Start the server and mount the handler
+  log.Fatal(http.ListenAndServe(":8080", auth.Handler()))
+}
+```
+
+</Step>
+
+<Step>
+
+### Understanding the Microsoft Graph user information response
+
+After successfully authenticating the user and exchanging the authorization code for an access token, Authula uses the access token to make a request to Microsoft Graph.
+
+The request is:
+
+```http
+GET https://graph.microsoft.com/v1.0/me
+Authorization: Bearer <ACCESS_TOKEN>
+```
+
+Microsoft Graph returns a JSON response containing the authenticated user's profile information.
+
+Example response:
+
+```json
+{
+  "id": "12345678-1234-1234-1234-123456789abc",
+  "displayName": "John Doe",
+  "givenName": "John",
+  "surname": "Doe",
+  "mail": "john.doe@example.com",
+  "userPrincipalName": "john.doe@example.com"
+}
+```
+
+Authula maps the response fields into its normalized user information structure:
+
+| Authula field       | Microsoft Graph field |
+| ------------------- | --------------------- |
+| `ProviderAccountID` | `id`                  |
+| `Email`             | `mail`                |
+| `Name`              | `displayName`         |
+| `Picture`           | Not provided          |
+| `Raw`               | Raw JSON payload      |
+
+This allows Authula to handle Microsoft authentication consistently with other OAuth2 providers.
+
+</Step>
+
+<Step>
+
+### Test the integration
+
+1. Start your Authula server.
+2. In your webapp, create a button that navigates the user to:
+
+   ```bash
+   # Replace localhost with your Authula server URL in production.
+   http://localhost:8080/auth/oauth2/authorize/microsoft?redirect_to=<YOUR_REDIRECT_URL>
+   ```
+
+3. You should be redirected to Microsoft's authorization page.
+4. After successfully authenticating and granting the requested permissions, Microsoft redirects the user back to Authula.
+5. Authula exchanges the authorization code for an access token, retrieves the user's profile from Microsoft Graph, and completes authentication.
+
+</Step>
+</Steps>
+
+### Additional resources
+
+- [Microsoft Entra application registration](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app)
+- [Microsoft Graph — Get user](https://learn.microsoft.com/en-us/graph/api/user-get?view=graph-rest-1.0)
+- [Microsoft identity platform — OAuth2 authorization code flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow)
+- [Microsoft Graph — Permissions reference](https://learn.microsoft.com/en-us/graph/permissions-reference)
