@@ -31,6 +31,13 @@ Services interact with the EventBus to publish and subscribe to events. The Even
 ## Quick Start
 
 ```go
+import (
+	authulaconfig "github.com/Authula/authula/config"
+	authulaenv "github.com/Authula/authula/env"
+	authulaevents "github.com/Authula/authula/events"
+	authulamodels "github.com/Authula/authula/models"
+)
+
 // Initialize provider (Redis example)
 config := authulaconfig.WithEventBus(authulamodels.EventBusConfig{
 	Provider: authulaevents.ProviderRedis.String(),
@@ -74,6 +81,13 @@ EVENT_BUS_CONSUMER_GROUP="consumer_group"
 ```
 
 ```go
+import (
+	authulaconfig "github.com/Authula/authula/config"
+	authulaenv "github.com/Authula/authula/env"
+	authulaevents "github.com/Authula/authula/events"
+	authulamodels "github.com/Authula/authula/models"
+)
+
 // With explicit config
 authulaconfig.WithEventBus(authulamodels.EventBusConfig{
 	Provider: authulaevents.ProviderRedis.String(),
