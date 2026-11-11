@@ -156,6 +156,7 @@ import (
 
 	authula "github.com/Authula/authula"
 	authulaconfig "github.com/Authula/authula/config"
+	authulaenv "github.com/Authula/authula/env"
 	authulamodels "github.com/Authula/authula/models"
 	emailplugin "github.com/Authula/authula/plugins/email"
 	emailpasswordplugin "github.com/Authula/authula/plugins/email-password"
@@ -169,6 +170,7 @@ func main() {
 
 	config := authulaconfig.NewConfig(
 		authulaconfig.WithAppName("YourAppName"),
+		authulaconfig.WithSecret(os.Getenv(authulaenv.EnvSecret)),
 		authulaconfig.WithBasePath("/api/auth"),
 		authulaconfig.WithDatabase(authulamodels.DatabaseConfig{
 			Provider: "sqlite",
