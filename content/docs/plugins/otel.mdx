@@ -119,7 +119,7 @@ The plugin does not create database tables.
 
 ## Plugin Capabilities
 
-The plugin records request data when requests start and finish. It also covers OPTIONS preflight requests and requests that take Authula's bypass paths, such as disabled-path responses.
+The plugin installs a `HookOnRequest` hook to start each request span and a `HookOnComplete` hook to end the span and record duration. Because completion hooks run on every exit path—including auth short-circuits, OPTIONS preflight requests, and disabled-path responses—telemetry is finalized even when a request never reaches a route handler.
 
 ### Traces
 

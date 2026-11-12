@@ -12,31 +12,54 @@ The system enables powerful capabilities such as authentication, authorization, 
 
 ## Hook Stages
 
-Hooks execute at four distinct stages in the request lifecycle:
+Hooks execute at five distinct stages in the request lifecycle:
 
 ### 1. `HookOnRequest`
 
 - Executes for every incoming request at the very start
 - Ideal for global logging, metrics collection, or request preprocessing
-- Runs before route matching occurs
+- Runs before route matching and handling
 
 ### 2. `HookBefore`
 
-- Executes after route matching but before the main route handler
+- Executes before route matching and handling
 - Perfect for authentication, authorization, and request validation
 - Common use: checking session tokens, validating permissions
 
 ### 3. `HookAfter`
 
-- Executes after the route handler but before the response is sent
+- Executes after route handling but before the response is sent
 - Useful for response modification, post-processing, or cleanup
 - Good for adding response headers or transforming output
 
 ### 4. `HookOnResponse`
 
-- Executes after the response has been written to the client
+- Executes after route handling and `HookAfter`, once the response has been produced
+- Only runs on the normal request path; it is skipped if an earlier hook short-circuits
 - Suitable for analytics, audit logging, or fire-and-forget operations
-- Does not affect the response sent to the client
+- Should not be relied on for cleanup that must run on every request
+
+### 5. `HookOnComplete`
+
+- Executes exactly once for every request, after all other hook stages
+- Also runs after an early short-circuit, immediately before the response is flushed
+- Route handlers never observe this stage
+- Cannot short-circuit the request or change routing
+- Always runs synchronously; `Async` is ignored for this stage
+- Runs on bypass paths such as `OPTIONS` preflight and disabled-path `404` responses
+- Use it for finalization: ending telemetry spans, recording metrics, flushing per-request buffers, or releasing resources
+
+`HookOnResponse` only runs on the normal path. `HookOnComplete` is the guaranteed finalization stage: it runs even when an earlier hook sets `Handled`, so it is the right place for cleanup that must happen on every exit path.
+
+### Execution order
+
+```text
+Normal request:
+HookOnRequest → HookBefore → route handler → HookAfter → HookOnResponse → HookOnComplete → flush
+
+Short-circuited request:
+HookOnRequest → HookBefore → HookOnComplete → flush
+```
 
 ## Configuration Options
 
@@ -91,12 +114,13 @@ Each hook is defined with the following properties:
 
 ```go
 type Hook struct {
-    Stage    HookStage      // When to execute (HookOnRequest, HookBefore, etc.)
-    PluginID string         // Optional: limits execution to specific routes
-    Matcher  HookMatcher    // Optional: conditional execution based on request
-    Handler  HookHandler    // The function that executes the hook
-    Order    int           // Execution order within the same stage
-    Async    bool          // Whether to run asynchronously
+    Stage       HookStage   // When to execute (HookOnRequest, HookBefore, etc.)
+    PluginID    string      // Optional: limits execution to specific routes
+    Matcher     HookMatcher // Optional: conditional execution based on request
+    Handler     HookHandler // The function that executes the hook
+    Order       int         // Execution order within the same stage
+    Async       bool        // Whether to run asynchronously (ignored for HookOnComplete)
+    RunOnBypass bool        // Also run HookOnRequest hooks on bypass paths
 }
 ```
 
@@ -107,7 +131,8 @@ type Hook struct {
 - **Matcher**: A function that returns true/false to conditionally execute the hook
 - **Handler**: The actual function that performs the hook's logic
 - **Order**: Controls execution order among hooks in the same stage (lower numbers first)
-- **Async**: Whether the hook runs synchronously or asynchronously
+- **Async**: Whether the hook runs synchronously or asynchronously; ignored for `HookOnComplete`, which always runs synchronously
+- **RunOnBypass**: When true, a `HookOnRequest` hook also runs on requests that never enter the normal lifecycle, such as `OPTIONS` preflight and disabled-path `404` responses. These hooks must not alter routing or short-circuit. `HookOnComplete` runs on those paths automatically, regardless of this field.
 
 ## Practical Examples
 
@@ -239,6 +264,43 @@ analyticsHook := models.Hook{
 }
 ```
 
+### Finalization with HookOnComplete
+
+```go
+// Pair a start hook with a completion hook to measure every request,
+// including requests rejected by an earlier authentication hook.
+func (p *MyPlugin) Hooks() []models.Hook {
+    return []models.Hook{
+        {
+            Stage: models.HookOnRequest,
+            Handler: func(reqCtx *models.RequestContext) error {
+                reqCtx.Values["request_start"] = time.Now()
+                return nil
+            },
+        },
+        {
+            Stage: models.HookOnComplete,
+            Handler: func(reqCtx *models.RequestContext) error {
+                start, ok := reqCtx.Values["request_start"].(time.Time)
+                if !ok {
+                    return nil
+                }
+
+                status := reqCtx.ResponseStatus
+                if status == 0 {
+                    status = http.StatusOK
+                }
+
+                recordRequestDuration(reqCtx.Method, reqCtx.Path, status, time.Since(start))
+                return nil
+            },
+        },
+    }
+}
+```
+
+`PluginID`, `Matcher`, and `Order` still apply to `HookOnComplete`. The `Async` field is ignored, and completion hooks run on bypass paths automatically, so they do not need `RunOnBypass`.
+
 ### Plugin-Specific Hook
 
 ```go
@@ -278,20 +340,28 @@ rateLimitHook := models.Hook{
 - Use `Async: true` for logging, analytics, notifications
 - Keep synchronous hooks for authentication, validation, and response modification
 - Be mindful of the timeout for async hooks
+- Do not use `Async` for `HookOnComplete`; completion hooks always run synchronously
 
-### 4. Leverage the Values Map
+### 4. Use HookOnComplete for Guaranteed Finalization
+
+- Use `HookOnComplete` for cleanup, telemetry, metrics, and buffer flushing that must happen on every request
+- Do not rely on `HookAfter` or `HookOnResponse` for cleanup; they are skipped when an earlier hook short-circuits
+- Keep completion hooks fast, since they run immediately before the response is flushed
+- Completion hooks cannot change routing or short-circuit the request
+
+### 5. Leverage the Values Map
 
 - Use `reqCtx.Values` to share data between hooks
 - Store computed values that other hooks might need
 - Avoid storing sensitive information in Values
 
-### 5. Use Matchers for Conditional Logic
+### 6. Use Matchers for Conditional Logic
 
 - Implement `Matcher` functions to conditionally execute hooks
 - This is more efficient than checking conditions inside the handler
 - Keep matchers lightweight to avoid performance overhead
 
-### 6. Plugin Integration
+### 7. Plugin Integration
 
 - Use `PluginID` to ensure hooks only run on relevant routes
 - Coordinate with route metadata to enable/disable hooks per endpoint
@@ -319,6 +389,7 @@ rateLimitHook := models.Hook{
 - Performance metrics
 - User activity tracking
 - Error monitoring
+- Request finalization, including telemetry span completion and duration metrics
 
 ### Business Logic
 

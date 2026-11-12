@@ -86,14 +86,12 @@ func mySQLite() migrations.Migration {
         Up: func(ctx context.Context, tx bun.Tx) error {
             return migrations.ExecStatements(ctx, tx,
                 `CREATE TABLE IF NOT EXISTS my_table (
-                  id TEXT NOT NULL PRIMARY KEY
+                    id TEXT NOT NULL PRIMARY KEY
                 );`,
             )
         },
         Down: func(ctx context.Context, tx bun.Tx) error {
-            return migrations.ExecStatements(
-              ctx,
-              tx,
+            return migrations.ExecStatements(ctx, tx,
               `DROP TABLE IF EXISTS my_table;`
             )
         },
@@ -149,25 +147,27 @@ type PluginWithHooks interface {
 }
 ```
 
-Four hook stages:
+Five hook stages:
 
 ```go
-HookOnRequest  // Very start of every request
-HookBefore     // Before route matching and handling
-HookAfter      // After route handling, before response sent
-HookResponse   // After response written
+HookOnRequest   // Very start of every request
+HookBefore      // Before route matching and handling
+HookAfter       // After route handling, before response sent
+HookOnResponse  // After the response has been produced (normal path only)
+HookOnComplete  // Exactly once per request, after all stages or a short-circuit
 ```
 
 Hook struct:
 
 ```go
 type Hook struct {
-    Stage    HookStage
-    PluginID string              // Optional — filters by route metadata["plugins"]
-    Matcher  HookMatcher         // Optional — filters by request context
-    Handler  HookHandler         // The hook implementation
-    Order    int                 // Execution order (local to PluginID)
-    Async    bool                // Side-effects only — never auth/security
+    Stage       HookStage
+    PluginID    string              // Optional — filters by route metadata["plugins"]
+    Matcher     HookMatcher         // Optional — filters by request context
+    Handler     HookHandler         // The hook implementation
+    Order       int                 // Execution order (local to PluginID)
+    Async       bool                // Side-effects only — never auth/security
+    RunOnBypass bool                // Also run HookOnRequest hooks on bypass paths
 }
 ```
 
@@ -179,6 +179,8 @@ type Hook struct {
 - `Handler` returning an error is logged but doesn't stop other hooks
 - Setting `reqCtx.Handled = true` stops subsequent hooks at that stage
 - **Async hooks** run in background goroutines for side-effects only (logging, analytics, events, webhooks). Never use for auth, CSRF, rate-limiting, or security.
+- **`HookOnComplete`** always runs exactly once, including after `reqCtx.Handled` short-circuits and on bypass paths. It cannot short-circuit and always runs synchronously; `Async` is ignored. Use it for finalization such as telemetry and cleanup.
+- **`RunOnBypass`** makes a `HookOnRequest` hook run on requests that never enter the normal lifecycle, such as `OPTIONS` preflight and disabled-path `404` responses. These hooks must not alter routing or short-circuit. `HookOnComplete` runs on those paths automatically, regardless of this field.
 
 ```go
 func (p *MyPlugin) Hooks() []models.Hook {
@@ -415,11 +417,10 @@ func (p *LoggerPlugin) Hooks() []models.Hook {
             Order:   10,
         },
         {
-            Stage:   models.HookAfter,
+            Stage:   models.HookOnComplete,
             Matcher: func(rc *models.RequestContext) bool { return p.config.LogRequests },
             Handler: p.logComplete,
             Order:   20,
-            Async:   true,
         },
     }
 }
@@ -454,3 +455,5 @@ func (p *LoggerPlugin) logComplete(rc *models.RequestContext) error {
     return nil
 }
 ```
+
+Using `HookOnComplete` guarantees the completion log runs even when an earlier hook rejects the request. Completion hooks always run synchronously, so `Async` is not set.
