@@ -29,7 +29,7 @@ base_url = "http://localhost:8080"
 # Base Path for API endpoints (e.g., "/auth")
 base_path = "/auth"
 
-# Used for encryption. Generate using `openssl rand -hex 32`.
+# Used for encryption. Generate using `openssl rand -base64 32`.
 # NOTE: It is recommended to set this via the AUTHULA_SECRET environment variable instead of hardcoding it here for better security.
 # secret = ""
 
@@ -198,7 +198,7 @@ EVENT_BUS_CONSUMER_GROUP=
 AUTHULA_CONFIG_PATH=
 # The base URL of your API (e.g., http://localhost:8080) (optional as it can be set in config.toml)
 AUTHULA_BASE_URL=
-# Used for encryption. Generate using `openssl rand -hex 32` (required if not set in config.toml)
+# Used for encryption. Generate using `openssl rand -base64 32` (required if not set in config.toml)
 AUTHULA_SECRET=
 # sqlite: "auth.db"
 # postgresql: "postgresql://username:password@localhost:5432/authula?sslmode=disable"
