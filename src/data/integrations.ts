@@ -19,7 +19,7 @@ export const integrationsCopy = {
   eyebrow: "Integrations",
   title: "OAuth2 providers, ready to connect.",
   description:
-    "Discord, GitHub and Google are built in. Connect any OAuth2 or OIDC provider with your own endpoints and field mappings.",
+    "Support for various providers. Connect any OAuth2 or OIDC provider with your own endpoints and field mappings.",
   primaryCta: {
     label: "Read the OAuth2 docs",
     href: "/docs/plugins/oauth2",
@@ -29,7 +29,7 @@ export const integrationsCopy = {
     href: "/docs/plugins/oauth2#custom-providers",
   },
   caption:
-    "Okta, Microsoft Entra ID, Auth0, Keycloak and GitLab use the custom provider config. Any provider with an authorization-code flow works the same way.",
+    "Okta, Auth0, Keycloak and GitLab use the custom provider config. Any provider with an authorization-code flow works the same way.",
 } as const;
 
 const customProviderHref = "/docs/plugins/oauth2#custom-providers";
@@ -46,6 +46,12 @@ export const integrationGroups: readonly IntegrationGroup[] = [
         logo: "/icons/providers/discord.svg",
       },
       {
+        id: "dropbox",
+        name: "Dropbox",
+        href: "/docs/plugins/oauth2/dropbox",
+        logo: "/icons/providers/dropbox.svg",
+      },
+      {
         id: "github",
         name: "GitHub",
         href: "/docs/plugins/oauth2/github",
@@ -56,6 +62,12 @@ export const integrationGroups: readonly IntegrationGroup[] = [
         name: "Google",
         href: "/docs/plugins/oauth2/google",
         logo: "/icons/providers/google.svg",
+      },
+      {
+        id: "microsoft-entra-id",
+        name: "Microsoft",
+        href: "/docs/plugins/oauth2/microsoft",
+        logo: "/icons/providers/microsoft-entra.svg",
       },
     ],
   },
@@ -69,13 +81,6 @@ export const integrationGroups: readonly IntegrationGroup[] = [
         href: customProviderHref,
         logo: "/icons/providers/okta.svg",
         ariaLabel: "Okta custom OAuth2 provider setup",
-      },
-      {
-        id: "microsoft-entra-id",
-        name: "Microsoft Entra ID",
-        href: customProviderHref,
-        logo: "/icons/providers/microsoft-entra.svg",
-        ariaLabel: "Microsoft Entra ID custom OAuth2 provider setup",
       },
       {
         id: "auth0",
