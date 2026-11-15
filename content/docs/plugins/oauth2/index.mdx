@@ -6,16 +6,19 @@ icon: FingerprintPattern
 
 ## Overview
 
-The OAuth2 plugin for Authula allows you to integrate third-party OAuth2 providers into your authentication flow, enabling users to sign in using their accounts from popular services like Discord, Dropbox, GitHub, Google etc. Custom OAuth2/OIDC providers can also be configured with their own endpoints and field mappings.
+The OAuth2 plugin for Authula lets users sign in with third-party OAuth2/OIDC providers. It supports built-in providers as well as custom providers with their own endpoints and field mappings.
+
+The plugin handles the authorization flow, state and PKCE protection, token exchange, profile retrieval, account linking, and session creation.
 
 ### Features
 
-- **Third-Party Authentication** — Allow users to authenticate using existing accounts from OAuth2-enabled providers
-- **Multiple Provider Support** — Configure and enable multiple built-in or custom OAuth2 providers simultaneously
-- **Automatic Token Management** — Handles authorization requests, token exchanges, and user profile retrieval
-- **PKCE Protection** — Uses S256 PKCE for Discord, Dropbox, GitHub, Google, and custom providers
-- **Account Linking** — Links provider accounts to existing users safely, with verified-email checks for anonymous requests
-- **Security Best Practices** — Built-in support for secure credential management via environment variables
+- **Third-Party Authentication** — Let users sign in with existing accounts from OAuth2-enabled providers.
+- **Multiple Provider Support** — Configure and enable several built-in or custom providers at the same time.
+- **Automatic Token Management** — Handles authorization requests, token exchanges, and user profile retrieval.
+- **PKCE Protection** — Uses S256 PKCE by default. Providers except for certain ones can opt out with `pkce = false`.
+- **Account Linking** — Links provider accounts to local users with verified-email checks.
+- **Database-Backed Flow State** — Stores short-lived, single-use flow state in the database.
+- **Automatic Cleanup** — Removes expired flow state when enabled.
 
 ### Supported Providers
 
@@ -24,6 +27,7 @@ The OAuth2 plugin for Authula allows you to integrate third-party OAuth2 provide
 - **[GitHub](github.mdx)** — Allow users to authenticate using their GitHub credentials
 - **[Google](google.mdx)** — Integrate Google OAuth2 for seamless user authentication
 - **[Microsoft](microsoft.mdx)** — Enable sign-in with Microsoft accounts using Microsoft Graph
+- **[Notion](notion.mdx)** — Enable sign-in with Notion accounts
 - **Custom OAuth2/OIDC** — Connect any provider that supports the authorization code flow
 
 Each built-in provider guide includes step-by-step instructions for obtaining credentials, configuring the provider, and testing the integration.
@@ -38,6 +42,9 @@ Each built-in provider guide includes step-by-step instructions for obtaining cr
 [plugins.oauth2]
 enabled = true
 http_timeout = "10s"
+flow_state_ttl = "5m"
+auto_cleanup = true
+cleanup_interval = "1m"
 
 # SECURITY NOTE: It is recommended to set the 'client_secret' for each provider via their
 # respective environment variables as shown in the .env.example file rather than hardcoding it here.
@@ -46,7 +53,6 @@ enabled = true
 client_id = "your-client-id"
 client_secret = "your-client-secret"
 redirect_url = "http://localhost:8080/api/auth/oauth2/callback/google"
-scopes = []
 ```
 
 ### Library Mode
@@ -54,16 +60,18 @@ scopes = []
 ```go
 import (
   "os"
+  "time"
 
   oauth2plugin "github.com/Authula/authula/plugins/oauth2"
   oauth2plugintypes "github.com/Authula/authula/plugins/oauth2/types"
 )
 
 oauth2plugin.New(oauth2plugintypes.OAuth2PluginConfig{
-  Enabled: true,
+  Enabled:      true,
+  HTTPTimeout:  10 * time.Second,
+  FlowStateTTL: 5 * time.Minute,
   Providers: map[string]oauth2plugintypes.ProviderConfig{
     "google": {
-      Enabled:      true,
       ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
       ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
       RedirectURL:  "https://yourdomain.com/api/auth/oauth2/callback/google",
@@ -72,32 +80,43 @@ oauth2plugin.New(oauth2plugintypes.OAuth2PluginConfig{
 })
 ```
 
+After initialization, `plugin.Api.Authorize` and `plugin.Api.Callback` are available for programmatic use.
+
 ### Configuration Options
 
-| Option         | Type            | Default | Description                                                             |
-| -------------- | --------------- | ------- | ----------------------------------------------------------------------- |
-| `enabled`      | `bool`          | —       | Enable the OAuth2 plugin                                                |
-| `http_timeout` | `time.Duration` | —       | Timeout for token and user-info requests. Responses are capped at 1 MiB |
+| Option             | Type                        | Default                  | Description                                                             |
+| ------------------ | --------------------------- | ------------------------ | ----------------------------------------------------------------------- |
+| `enabled`          | `bool`                      | `true` when block exists | Enable the OAuth2 plugin                                                |
+| `http_timeout`     | `time.Duration`             | `10s`                    | Timeout for token and user-info requests. Responses are capped at 1 MiB |
+| `flow_state_ttl`   | `time.Duration`             | `5m`                     | Lifetime of flow state and the binding cookie                           |
+| `auto_cleanup`     | `bool`                      | `false`                  | Periodically delete expired flow state                                  |
+| `cleanup_interval` | `time.Duration`             | `1m`                     | Cleanup interval                                                        |
+| `providers`        | `map[string]ProviderConfig` | Empty                    | Provider configuration                                                  |
 
 ### Provider Options
 
-| Option                 | Type       | Default                                            | Description                                                         |
-| ---------------------- | ---------- | -------------------------------------------------- | ------------------------------------------------------------------- |
-| `enabled`              | `bool`     | `true`                                             | Enable this provider                                                |
-| `client_id`            | `string`   | —                                                  | OAuth2 client ID                                                    |
-| `client_secret`        | `string`   | —                                                  | OAuth2 client secret                                                |
-| `redirect_url`         | `string`   | `<base_url><base_path>/oauth2/callback/<provider>` | Callback URL registered with the provider                           |
-| `scopes`               | `[]string` | Built-in provider scopes                           | Scopes requested during authorization                               |
-| `auth_url`             | `string`   | Built-in provider endpoint                         | Authorization endpoint. Required for custom providers               |
-| `token_url`            | `string`   | Built-in provider endpoint                         | Token endpoint. Required for custom providers                       |
-| `user_info_url`        | `string`   | Built-in provider endpoint                         | User-info endpoint. Required for custom providers                   |
-| `user_id_field`        | `string`   | Provider-specific                                  | Field containing the provider account ID                            |
-| `email_field`          | `string`   | Provider-specific                                  | Field containing the user's email                                   |
-| `name_field`           | `string`   | Provider-specific                                  | Field containing the user's display name                            |
-| `picture_field`        | `string`   | Provider-specific                                  | Field containing the user's profile picture                         |
-| `email_verified_field` | `string`   | Provider-specific                                  | Field indicating whether the provider has verified the user's email |
+| Option                 | Type                | Default                                            | Description                                                              |
+| ---------------------- | ------------------- | -------------------------------------------------- | ------------------------------------------------------------------------ |
+| `enabled`              | `bool`              | `true`                                             | Enable this provider                                                     |
+| `client_id`            | `string`            | —                                                  | OAuth2 client ID                                                         |
+| `client_secret`        | `string`            | —                                                  | OAuth2 client secret                                                     |
+| `redirect_url`         | `string`            | `<base_url><base_path>/oauth2/callback/<provider>` | Callback URL registered with the provider                                |
+| `scopes`               | `[]string`          | Built-in provider scopes                           | Scopes requested during authorization                                    |
+| `auth_url`             | `string`            | Built-in provider endpoint                         | Authorization endpoint. Required for custom providers                    |
+| `token_url`            | `string`            | Built-in provider endpoint                         | Token endpoint. Required for custom providers                            |
+| `user_info_url`        | `string`            | Built-in provider endpoint                         | User-info endpoint. Required for custom providers                        |
+| `user_id_field`        | `string`            | Provider-specific                                  | Field containing the provider account ID                                 |
+| `email_field`          | `string`            | Provider-specific                                  | Field containing the user's email                                        |
+| `name_field`           | `string`            | Provider-specific                                  | Field containing the user's display name                                 |
+| `picture_field`        | `string`            | Provider-specific                                  | Field containing the user's profile picture                              |
+| `email_verified_field` | `string`            | Provider-specific                                  | Field indicating whether the provider has verified the user's email      |
+| `pkce`                 | `bool`              | `true`                                             | Require S256 PKCE for this provider. Notion always uses no PKCE          |
+| `tenant_id`            | `string`            | `common` (Microsoft only)                          | Microsoft tenant: `common`, `organizations`, `consumers`, or a tenant ID |
+| `auth_url_params`      | `map[string]string` | Empty                                              | Extra authorization URL query parameters                                 |
 
-Built-in scopes and endpoints are used when the config omits them.
+Built-in scopes and endpoints are used when the config omits them. Some built-in providers ignore fields that do not apply to them; see the provider guide for details.
+
+`redirect_url` must be absolute, use HTTPS outside localhost, and contain no wildcards, credentials, or fragments.
 
 ### Custom Providers
 
@@ -121,15 +140,16 @@ email_verified_field = "email_verified"
 
 ### Environment Variables
 
-Google, GitHub, Discord, and Dropbox also read credentials from the following environment variables:
+Built-in providers also read credentials from these environment variables:
 
 - `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`
 - `DROPBOX_CLIENT_ID` / `DROPBOX_CLIENT_SECRET`
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
 - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`
-- `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET`
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
+- `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` / `MICROSOFT_TENANT_ID`
+- `NOTION_CLIENT_ID` / `NOTION_CLIENT_SECRET`
 
-Environment values override only `client_id` and `client_secret`; other configuration fields are kept. An explicit `redirect_url` always wins. Setting only one variable of a pair is an error at startup.
+Environment values override only `client_id` and `client_secret`, except `MICROSOFT_TENANT_ID`, which overrides `tenant_id`. Other configuration fields are kept. A provider with environment credentials is registered without a config block. An explicit `redirect_url` always wins. Setting only one credential of a pair is an error at startup.
 
 ### Route Mappings
 
@@ -155,60 +175,70 @@ The plugin relies on the core `User`, `Account`, `Session`, and `Token` services
 | `GET`       | `/oauth2/authorize/{provider}` | Initiate OAuth2 authorization flow        |
 | `GET`       | `/oauth2/callback/{provider}`  | Handle OAuth2 callback and token exchange |
 
+### Authorize Endpoint
+
+`GET /oauth2/authorize/{provider}` accepts an optional `redirect_to` query parameter. It returns `200` with `{"auth_url": "..."}` and sets the short-lived `oauth2_flow_binding` cookie. A signed-in user starts a linking flow; an anonymous request starts a login flow. The response is sent with `Cache-Control: no-store`.
+
+### Callback Endpoint
+
+`GET /oauth2/callback/{provider}` requires `state` and the binding cookie. It consumes the stored flow state once, exchanges the authorization code, loads the provider profile, and signs in or links the user.
+
+The callback returns `200` with a safe user/session view when no redirect is configured, or `302` to `redirect_to` when one was supplied. A provider denial with a trusted redirect returns `302` with `error` and `error_description`; otherwise it returns `401`. The response never includes the session token, IP address, or user agent.
+
 ### Account Linking
 
 The provider account identity is authoritative:
 
 1. The callback resolves the account by `(provider, provider_account_id)` first.
 2. If the account exists, the callback signs in the account owner. The provider email is never used to switch users.
-3. If the account does not exist and the request is authenticated, the account is linked to the signed-in user.
-4. If the account does not exist and the request is anonymous, an existing local user is linked only when the provider asserts the email is verified.
-5. An unverified provider email never auto-links. If a local user already owns that email, the callback returns an error instead of signing in.
+3. For a linking flow, the signed-in actor must match the user who started the flow, and the user must not already have an account for that provider.
+4. For a login flow, an existing local user with the provider email is linked only when the provider asserts the email is verified. If no local user exists, a new user is created with the provider's verification status.
+5. A login flow creates a session; a linking flow reuses the current session.
 
 A provider account owned by another user returns `409 Conflict`. A user can have multiple provider accounts, and each `(provider_id, account_id)` pair is unique.
 
-### PKCE and Flow Cookies
+### Flow State and Cookies
 
-Discord, Dropbox, GitHub, Google, and custom providers use S256 PKCE. The authorize step returns a signed verifier cookie and includes `code_challenge` in the authorization URL. The callback requires the verifier and passes it to the token exchange.
+The authorize step creates a single-use row in `oauth_flow_states` and sets one cookie:
 
-The plugin sets three short-lived flow cookies:
+| Cookie                | Purpose                                    |
+| --------------------- | ------------------------------------------ |
+| `oauth2_flow_binding` | Binds the browser to the stored flow state |
 
-| Cookie               | Purpose                                             |
-| -------------------- | --------------------------------------------------- |
-| `oauth2_state`       | Signed state bound to the provider and flow purpose |
-| `oauth2_redirect_to` | Signed redirect destination                         |
-| `oauth2_verifier`    | Signed PKCE verifier                                |
+The stored flow state contains the state hash, provider, purpose, optional redirect target, and encrypted PKCE verifier. The callback requires both the `state` query parameter and the cookie.
 
-All flow cookies are `HttpOnly`, use `Path=/`, and expire after five minutes. `Secure`, `Domain`, and `SameSite` come from the session configuration, not from `X-Forwarded-Proto`. Cookies are cleared on every terminal callback path, including errors and already-authenticated links.
+The cookie is `HttpOnly`, uses `Path=/`, and is always `SameSite=Lax` so the browser sends it on the provider callback. `Secure` and `Domain` come from the session configuration. Its lifetime follows `flow_state_ttl`. The plugin does not clear the cookie on callback.
 
 ### Redirects
 
-`redirect_to` accepts relative paths and absolute URLs on trusted origins (`security.trusted_origins`). Protocol-relative URLs, non-HTTP(S) schemes, credentials, and untrusted hosts are rejected. The signed value is validated again before the `Location` header is set.
+An empty `redirect_to` means no redirect. Relative paths must start with `/`; protocol-relative URLs are rejected. Absolute URLs must use HTTP(S), contain no credentials, and be on a trusted origin (`security.trusted_origins`). The stored value is validated again before the `Location` header is set.
 
 ### Responses
 
-The callback returns the user and a safe session view. It never returns the session token, IP address, or user agent. The session cookie is the supported credential.
+Errors return a JSON body with a `message` field.
 
-| Status | Meaning                                                           |
-| ------ | ----------------------------------------------------------------- |
-| `401`  | Provider denied access, or authentication required                |
-| `404`  | Unknown provider                                                  |
-| `409`  | Account conflict or account linked to another user                |
-| `422`  | Invalid state, code, PKCE verifier, email, or provider account ID |
-| `502`  | Provider request failed                                           |
-| `500`  | Internal error                                                    |
+| Status | Meaning                                                            |
+| ------ | ------------------------------------------------------------------ |
+| `200`  | Success                                                            |
+| `302`  | Redirect after success, or provider denial with a trusted redirect |
+| `401`  | Provider denied access, or authentication required                 |
+| `404`  | Unknown provider                                                   |
+| `409`  | Account conflict or email already in use                           |
+| `422`  | Invalid state, code, PKCE verifier, email, or provider account ID  |
+| `502`  | Provider request failed                                            |
+| `500`  | Internal error                                                     |
 
 ---
 
 ## Database Schema
 
-This plugin doesn't create any database tables.
+The plugin stores outbound flow state in the `oauth_flow_states` table. Each row contains the state hash, provider, purpose, optional user ID and redirect target, encrypted PKCE verifier, expiry, and consumed timestamp. Rows are single-use, and expired rows are deleted when `auto_cleanup` is enabled.
 
 ---
 
 ## Plugin Capabilities
 
-This plugin doesn't have any hooks and capabilities.
+The plugin has no hooks. It registers the two OAuth2 GET routes, requires the core `User`, `Account`, `Session`, and `Token` services, exposes `API.Authorize` and `API.Callback`, and runs the cleanup loop when `auto_cleanup` is enabled.
 
 ---
 
@@ -219,6 +249,8 @@ This plugin doesn't have any hooks and capabilities.
 - **Validate Provider Scopes** — Only request the minimum scopes necessary for your application to reduce security exposure.
 - **Restrict Redirect Destinations** — Add trusted frontend origins to `security.trusted_origins`, and never accept arbitrary redirect targets from untrusted input.
 - **Use Secure Cookies** — Set `secure = true` and an appropriate `SameSite` value in the session configuration in production.
+- **Keep PKCE Enabled** — Disabling PKCE per provider is not OAuth 2.1 compliant. Keep it enabled unless the provider requires otherwise.
+- **Keep Flow State Short-Lived** — The binding cookie is not cleared after callback, so use a short `flow_state_ttl`.
 - **Rely on Verified Emails** — Only auto-link provider accounts to existing users when the provider asserts the email is verified, or require the user to sign in first.
 
 ---
