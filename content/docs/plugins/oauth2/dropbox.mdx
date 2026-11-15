@@ -131,8 +131,8 @@ After exchanging the authorization code, Authula calls Dropbox's OIDC user info 
 - Dropbox OIDC guarantees that returned email addresses are verified.
 - The display name is built from `given_name` and `family_name`. Either field can be missing; Authula trims the result.
 - Dropbox OIDC does not return an avatar, so `Picture` is empty.
-- PKCE is enabled by default because Dropbox supports it.
-- Refresh tokens are enabled by default; the authorization URL includes `token_access_type=offline`.
+- PKCE is enabled by default.
+- Refresh tokens are supported as the authorization URL includes `token_access_type=offline` query parameter but this can be overridden via config to remove this parameter if you don't want refresh tokens generated.
 
 </Step>
 
