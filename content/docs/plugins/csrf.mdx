@@ -128,7 +128,7 @@ import { createClient } from "authula";
 import { CSRFPlugin } from "authula/plugins";
 
 export const authulaClient = createClient({
-  url: "http://localhost:8080/auth",
+  url: "http://localhost:8080/api/auth",
   plugins: [
     // other plugins...
     new CSRFPlugin({

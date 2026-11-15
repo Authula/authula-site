@@ -40,7 +40,7 @@ Add the following to your `config.toml`:
 enabled = true
 client_id = "your-client-id"
 client_secret = "your-client-secret"
-redirect_url = "http://localhost:8080/auth/oauth2/callback/google"
+redirect_url = "http://localhost:8080/api/auth/oauth2/callback/google"
 ```
 
 #### Library Mode
@@ -102,7 +102,7 @@ func main() {
 1. In your webapp, create a button when clicked on, it navigates the user to:
    ```bash
    # (replace localhost with your Authula server URL in production).
-   http://localhost:8080/auth/oauth2/authorize/google?redirect_to=<YOUR_REDIRECT_URL>
+   http://localhost:8080/api/auth/oauth2/authorize/google?redirect_to=<YOUR_REDIRECT_URL>
    ```
 1. You should be redirected to Google's authorization page. After authorizing, you will be redirected back to your application.
 

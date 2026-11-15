@@ -1,0 +1,161 @@
+---
+title: Dropbox
+description: Guide on how to set up Dropbox authentication using Authula.
+icon: /icons/providers/dropbox.svg
+---
+
+**Note:** This guide uses Dropbox OpenID Connect (OIDC) for user sign-in.
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+
+<Steps>
+<Step>
+
+### Obtain Dropbox credentials
+
+1. Go to the [Dropbox App Console](https://www.dropbox.com/developers/apps) and click **Create app**.
+2. Choose **Scoped access**, select the access type that fits your application, and give the app a name.
+3. Open the **Permissions** tab and enable the `openid`, `profile`, and `email` scopes.
+4. Under **OAuth 2**, add the following redirect URI:
+   ```bash
+   # Assuming base path is /api/auth
+   http://localhost:8080/api/auth/oauth2/callback/dropbox
+   ```
+   For production, replace localhost with the base URL of your Authula server (e.g. `https://api.yourdomain.com`) and keep your base path.
+5. Open the **Settings** tab and copy the **App key** and **App secret**.
+
+</Step>
+
+<Step>
+
+### Configure the provider
+
+Authula uses the following Dropbox OIDC endpoints:
+
+- **Authorization URL:** `https://www.dropbox.com/oauth2/authorize`
+- **Token URL:** `https://api.dropboxapi.com/oauth2/token`
+- **User Info URL:** `POST https://api.dropboxapi.com/2/openid/userinfo`
+
+The user info request sends an empty JSON object (`{}`) with the access token in the `Authorization: Bearer <access_token>` header.
+
+#### Standalone Mode
+
+Add the following to your `config.toml`:
+
+```toml
+# SECURITY NOTE: It is recommended to set the 'client_secret' via an environment
+# variable rather than hardcoding it here.
+[plugins.oauth2.providers.dropbox]
+enabled = true
+client_id = "your-app-key"
+client_secret = "your-app-secret"
+redirect_url = "http://localhost:8080/api/auth/oauth2/callback/dropbox"
+```
+
+You can also provide the credentials through environment variables:
+
+```bash title=".env"
+DROPBOX_CLIENT_ID=
+DROPBOX_CLIENT_SECRET=
+```
+
+Environment values override `client_id` and `client_secret` only. An explicit `redirect_url` always wins. When `redirect_url` is omitted, Authula builds it from `base_url` and `base_path` as `/oauth2/callback/dropbox`.
+
+#### Library Mode
+
+```go
+import (
+  "os"
+  "fmt"
+
+  authula "github.com/Authula/authula"
+  authulaconfig "github.com/Authula/authula/config"
+  authulaenv "github.com/Authula/authula/env"
+  authulamodels "github.com/Authula/authula/models"
+  oauth2plugin "github.com/Authula/authula/plugins/oauth2"
+  oauth2plugintypes "github.com/Authula/authula/plugins/oauth2/types"
+)
+
+func main() {
+  config := authulaconfig.NewConfig(
+    authulaconfig.WithSecurity(authulamodels.SecurityConfig{
+      // Make sure to configure CORS and Trusted Origins appropriately
+      TrustedOrigins: []string{"your frontend origin"},
+      CORS: authulamodels.CORSConfig{
+        AllowCredentials: true,
+        AllowedOrigins:   []string{"your frontend origin"},
+      },
+    }),
+  )
+
+  auth := authula.New(&authula.AuthConfig{
+    Config:  config,
+    Plugins: []authulamodels.Plugin{
+      oauth2plugin.New(oauth2plugintypes.OAuth2PluginConfig{
+        Enabled: true,
+        Providers: map[string]oauth2plugintypes.ProviderConfig{
+          "dropbox": {
+            Enabled:      true,
+            ClientID:     os.Getenv(authulaenv.EnvDropboxClientID),
+            ClientSecret: os.Getenv(authulaenv.EnvDropboxClientSecret),
+            RedirectURL:  fmt.Sprintf("%s%s/oauth2/callback/dropbox", config.BaseURL, config.BasePath),
+          },
+        },
+      }),
+    },
+  })
+
+  // Start the server and mount the handler
+  log.Fatal(http.ListenAndServe(":8080", auth.Handler()))
+}
+```
+
+</Step>
+
+<Step>
+
+### How Authula maps the Dropbox user info
+
+After exchanging the authorization code, Authula calls Dropbox's OIDC user info endpoint and maps the response into its normalized user information:
+
+| Authula field       | Dropbox field                             |
+| ------------------- | ----------------------------------------- |
+| `ProviderAccountID` | `sub` (for example, `dbid:AAH4f99...`)    |
+| `Email`             | `email` (normalized to lowercase)         |
+| `EmailVerified`     | `email_verified` (always `true` for OIDC) |
+| `Name`              | `given_name` + `family_name`              |
+| `Picture`           | Not provided (empty)                      |
+| `Raw`               | Raw JSON payload                          |
+
+- `sub` is the stable Dropbox account identifier and is used for account linking. Email addresses can change, so they are not used as the account identity.
+- Dropbox OIDC guarantees that returned email addresses are verified.
+- The display name is built from `given_name` and `family_name`. Either field can be missing; Authula trims the result.
+- Dropbox OIDC does not return an avatar, so `Picture` is empty.
+- PKCE is enabled by default because Dropbox supports it.
+- Refresh tokens are enabled by default; the authorization URL includes `token_access_type=offline`.
+
+</Step>
+
+<Step>
+
+### Test the integration
+
+1. Start your Authula server.
+2. In your webapp, create a button that navigates the user to:
+
+   ```bash
+   # Replace localhost with your Authula server URL in production.
+   http://localhost:8080/api/auth/oauth2/authorize/dropbox?redirect_to=<YOUR_REDIRECT_URL>
+   ```
+
+3. You should be redirected to Dropbox's authorization page.
+4. After authorizing, Dropbox redirects the user back to Authula, which exchanges the code, retrieves the profile, and completes authentication.
+
+</Step>
+</Steps>
+
+### Additional resources
+
+- [Dropbox OpenID Connect](https://docs.dropboxapi.com/dropbox-api/docs/oidc)
+- [Dropbox App Console](https://www.dropbox.com/developers/apps)
+- [Dropbox OAuth guide](https://developers.dropbox.com/oauth-guide)

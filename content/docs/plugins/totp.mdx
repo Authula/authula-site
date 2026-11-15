@@ -259,7 +259,7 @@ import { createClient } from "authula";
 import { TOTPPlugin } from "authula/plugins";
 
 export const authulaClient = createClient({
-  url: "http://localhost:8080/auth",
+  url: "http://localhost:8080/api/auth",
   plugins: [
     // other plugins...
     new TOTPPlugin(),

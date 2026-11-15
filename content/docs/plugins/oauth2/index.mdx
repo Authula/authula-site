@@ -6,22 +6,24 @@ icon: FingerprintPattern
 
 ## Overview
 
-The OAuth2 plugin for Authula allows you to integrate third-party OAuth2 providers into your authentication flow, enabling users to sign in using their accounts from popular services like Google, GitHub, and Discord. Custom OAuth2/OIDC providers can also be configured with their own endpoints and field mappings.
+The OAuth2 plugin for Authula allows you to integrate third-party OAuth2 providers into your authentication flow, enabling users to sign in using their accounts from popular services like Discord, Dropbox, GitHub, Google etc. Custom OAuth2/OIDC providers can also be configured with their own endpoints and field mappings.
 
 ### Features
 
 - **Third-Party Authentication** — Allow users to authenticate using existing accounts from OAuth2-enabled providers
 - **Multiple Provider Support** — Configure and enable multiple built-in or custom OAuth2 providers simultaneously
 - **Automatic Token Management** — Handles authorization requests, token exchanges, and user profile retrieval
-- **PKCE Protection** — Uses S256 PKCE for Discord, GitHub, Google, and custom providers
+- **PKCE Protection** — Uses S256 PKCE for Discord, Dropbox, GitHub, Google, and custom providers
 - **Account Linking** — Links provider accounts to existing users safely, with verified-email checks for anonymous requests
 - **Security Best Practices** — Built-in support for secure credential management via environment variables
 
 ### Supported Providers
 
 - **[Discord](discord.mdx)** — Enable sign-in with Discord accounts
+- **[Dropbox](dropbox.mdx)** — Enable sign-in with Dropbox accounts using Dropbox OpenID Connect
 - **[GitHub](github.mdx)** — Allow users to authenticate using their GitHub credentials
 - **[Google](google.mdx)** — Integrate Google OAuth2 for seamless user authentication
+- **[Microsoft](microsoft.mdx)** — Enable sign-in with Microsoft accounts using Microsoft Graph
 - **Custom OAuth2/OIDC** — Connect any provider that supports the authorization code flow
 
 Each built-in provider guide includes step-by-step instructions for obtaining credentials, configuring the provider, and testing the integration.
@@ -43,7 +45,7 @@ http_timeout = "10s"
 enabled = true
 client_id = "your-client-id"
 client_secret = "your-client-secret"
-redirect_url = "http://localhost:8080/auth/oauth2/callback/google"
+redirect_url = "http://localhost:8080/api/auth/oauth2/callback/google"
 scopes = []
 ```
 
@@ -64,7 +66,7 @@ oauth2plugin.New(oauth2plugintypes.OAuth2PluginConfig{
       Enabled:      true,
       ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
       ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-      RedirectURL:  "https://yourdomain.com/auth/oauth2/callback/google",
+      RedirectURL:  "https://yourdomain.com/api/auth/oauth2/callback/google",
     },
   },
 })
@@ -105,7 +107,7 @@ Custom providers are registered when `auth_url`, `token_url`, and `user_info_url
 [plugins.oauth2.providers.okta]
 client_id = "your-client-id"
 client_secret = "your-client-secret"
-redirect_url = "https://api.example.com/auth/oauth2/callback/okta"
+redirect_url = "https://api.example.com/api/auth/oauth2/callback/okta"
 auth_url = "https://example.okta.com/oauth2/v1/authorize"
 token_url = "https://example.okta.com/oauth2/v1/token"
 user_info_url = "https://example.okta.com/oauth2/v1/userinfo"
@@ -119,11 +121,13 @@ email_verified_field = "email_verified"
 
 ### Environment Variables
 
-Google, GitHub, and Discord also read credentials from the following environment variables:
+Google, GitHub, Discord, and Dropbox also read credentials from the following environment variables:
 
+- `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`
+- `DROPBOX_CLIENT_ID` / `DROPBOX_CLIENT_SECRET`
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
 - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`
-- `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`
+- `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET`
 
 Environment values override only `client_id` and `client_secret`; other configuration fields are kept. An explicit `redirect_url` always wins. Setting only one variable of a pair is an error at startup.
 
@@ -165,7 +169,7 @@ A provider account owned by another user returns `409 Conflict`. A user can have
 
 ### PKCE and Flow Cookies
 
-Discord, GitHub, Google, and custom providers use S256 PKCE. The authorize step returns a signed verifier cookie and includes `code_challenge` in the authorization URL. The callback requires the verifier and passes it to the token exchange.
+Discord, Dropbox, GitHub, Google, and custom providers use S256 PKCE. The authorize step returns a signed verifier cookie and includes `code_challenge` in the authorization URL. The callback requires the verifier and passes it to the token exchange.
 
 The plugin sets three short-lived flow cookies:
 
@@ -228,7 +232,7 @@ import { createClient } from "authula";
 import { OAuth2Plugin } from "authula/plugins";
 
 export const authulaClient = createClient({
-  url: "http://localhost:8080/auth",
+  url: "http://localhost:8080/api/auth",
   plugins: [
     // other plugins...
     new OAuth2Plugin(),

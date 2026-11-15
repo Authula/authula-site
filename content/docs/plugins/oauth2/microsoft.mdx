@@ -84,7 +84,7 @@ Add the following to your `config.toml`:
 enabled = true
 client_id = "your-client-id"
 client_secret = "your-client-secret"
-redirect_url = "http://localhost:8080/auth/oauth2/callback/microsoft"
+redirect_url = "http://localhost:8080/api/auth/oauth2/callback/microsoft"
 # Optional
 tenant_id = "common"
 ```
@@ -195,7 +195,7 @@ This allows Authula to handle Microsoft authentication consistently with other O
 
    ```bash
    # Replace localhost with your Authula server URL in production.
-   http://localhost:8080/auth/oauth2/authorize/microsoft?redirect_to=<YOUR_REDIRECT_URL>
+   http://localhost:8080/api/auth/oauth2/authorize/microsoft?redirect_to=<YOUR_REDIRECT_URL>
    ```
 
 3. You should be redirected to Microsoft's authorization page.
