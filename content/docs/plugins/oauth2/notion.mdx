@@ -1,0 +1,216 @@
+---
+title: Notion
+description: Guide on how to set up Notion authentication using Authula.
+icon: /icons/providers/notion.svg
+---
+
+**Note:** This guide uses Notion OAuth 2.0 to authorize users and connect their Notion workspaces to Authula. Notion does not implement OpenID Connect (OIDC), so authentication and user information are handled differently from traditional OIDC providers.
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+
+<Steps>
+<Step>
+
+### Obtain Notion credentials
+
+1. Go to the [Notion Developer Portal](https://developers.notion.com/) and sign in.
+2. Navigate to your integrations and click **New integration**.
+3. Give your integration a name and configure its basic information.
+4. Configure the integration's distribution and installation scope:
+   - Select **Any workspace** if users from different Notion workspaces should be able to authorize your application.
+   - Alternatively, restrict installation to selected workspaces.
+5. Open the **OAuth Domain & URLs** or OAuth configuration section and add the following redirect URI:
+
+   ```bash
+   # Assuming base path is /api/auth
+   http://localhost:8080/api/auth/oauth2/callback/notion
+   ```
+
+   For production, replace localhost with the base URL of your Authula server (e.g. `https://api.yourdomain.com`) and keep your base path.
+
+6. Configure the capabilities your application needs. Notion provides separate capabilities for:
+   - Content: reading, updating, and inserting content.
+   - User information: accessing user information, optionally including email addresses.
+7. Open the integration's configuration or secrets section and copy the **OAuth Client ID** and **OAuth Client Secret**.
+
+**Important:** Notion permissions are configured through the integration's capabilities rather than conventional OAuth scopes. Users will also choose which pages and databases to share with your integration during authorization.
+
+</Step>
+
+<Step>
+
+### Configure the provider
+
+Authula uses the following Notion OAuth 2.0 endpoints:
+
+- **Authorization URL:** `https://api.notion.com/v1/oauth/authorize`
+- **Token URL:** `https://api.notion.com/v1/oauth/token`
+- **User Info URL:** Not provided as a separate OIDC endpoint. Notion returns the authorizing user's information in the token response under `owner.user`.
+
+Notion requires the `owner=user` parameter on the authorization URL. Authula handles this as part of its Notion provider implementation.
+
+Unlike conventional OAuth providers, Notion also requires HTTP Basic authentication and a JSON request body when exchanging authorization codes for tokens. Authula handles this provider-specific token exchange.
+
+Notion does not use a conventional OAuth `scope` parameter. The permissions available to the integration are determined by its configured capabilities.
+
+#### Standalone Mode
+
+Add the following to your `config.toml`:
+
+```toml
+# SECURITY NOTE: It is recommended to set the 'client_secret' via an environment
+# variable rather than hardcoding it here.
+[plugins.oauth2.providers.notion]
+enabled = true
+client_id = "your-client-id"
+client_secret = "your-client-secret"
+redirect_url = "http://localhost:8080/api/auth/oauth2/callback/notion"
+```
+
+You can also provide the credentials through environment variables:
+
+```bash title=".env"
+NOTION_CLIENT_ID=
+NOTION_CLIENT_SECRET=
+```
+
+Environment values override `client_id` and `client_secret` only. An explicit `redirect_url` always wins. When `redirect_url` is omitted, Authula builds it from `base_url` and `base_path` as `/oauth2/callback/notion`.
+
+#### Library Mode
+
+```go
+import (
+  "os"
+  "fmt"
+
+  authula "github.com/Authula/authula"
+  authulaconfig "github.com/Authula/authula/config"
+  authulaenv "github.com/Authula/authula/env"
+  authulamodels "github.com/Authula/authula/models"
+  oauth2plugin "github.com/Authula/authula/plugins/oauth2"
+  oauth2plugintypes "github.com/Authula/authula/plugins/oauth2/types"
+)
+
+func main() {
+  config := authulaconfig.NewConfig(
+    authulaconfig.WithSecurity(authulamodels.SecurityConfig{
+      // Make sure to configure CORS and Trusted Origins appropriately
+      TrustedOrigins: []string{"your frontend origin"},
+      CORS: authulamodels.CORSConfig{
+        AllowCredentials: true,
+        AllowedOrigins:   []string{"your frontend origin"},
+      },
+    }),
+  )
+
+  auth := authula.New(&authula.AuthConfig{
+    Config:  config,
+    Plugins: []authulamodels.Plugin{
+      oauth2plugin.New(oauth2plugintypes.OAuth2PluginConfig{
+        Enabled: true,
+        Providers: map[string]oauth2plugintypes.ProviderConfig{
+          "notion": {
+            Enabled:      true,
+            ClientID:     os.Getenv(authulaenv.EnvNotionClientID),
+            ClientSecret: os.Getenv(authulaenv.EnvNotionClientSecret),
+            RedirectURL:  fmt.Sprintf("%s%s/oauth2/callback/notion", config.BaseURL, config.BasePath),
+          },
+        },
+      }),
+    },
+  })
+
+  // Start the server and mount the handler
+  log.Fatal(http.ListenAndServe(":8080", auth.Handler()))
+}
+```
+
+</Step>
+
+<Step>
+
+### How Authula maps the Notion user information
+
+After exchanging the authorization code, Notion returns an access token, refresh token, workspace information, and information about the owner of the authorization.
+
+Unlike traditional OAuth providers, Notion does not provide a separate user-info endpoint for retrieving the authorizing person. Authula extracts the user's information directly from the `owner.user` object returned in the token response. No additional HTTP request is required.
+
+Authula maps the Notion response into its normalized user information as follows:
+
+| Authula field       | Notion field                                         |
+| ------------------- | ---------------------------------------------------- |
+| `ProviderAccountID` | `owner.user.id`                                      |
+| `Email`             | `owner.user.person.email` (normalized to lowercase)  |
+| `EmailVerified`     | `owner.user.person.email_verified`                   |
+| `Name`              | `owner.user.name`                                    |
+| `Picture`           | `owner.user.avatar_url`                              |
+| `Raw`               | Selected properties from the original token response |
+
+A few important details:
+
+- `owner.user.id` is the Notion user identifier and is used as the stable provider account identity for account linking.
+- Email addresses are available when the integration has the appropriate user information capabilities enabled and the authorizing user provides an accessible email address.
+- `EmailVerified` reflects the `email_verified` value returned by Notion. Authula does not assume that email addresses are verified.
+- The user's display name is provided through `owner.user.name`.
+- The user's avatar URL is provided through `owner.user.avatar_url`, when available.
+- Authula only accepts person-owned tokens (`owner.type = "user"`). Workspace-owned tokens cannot identify an individual user and therefore cannot be used for user authentication.
+
+#### Additional workspace information
+
+Notion also returns workspace information alongside the owner object. Authula preserves selected properties in the `Raw` field:
+
+| Property                 | Description                                    |
+| ------------------------ | ---------------------------------------------- |
+| `workspace_id`           | ID of the authorized Notion workspace          |
+| `workspace_name`         | Name of the authorized workspace               |
+| `workspace_icon`         | Workspace icon                                 |
+| `bot_id`                 | Notion integration bot identifier              |
+| `duplicated_template_id` | Duplicated template identifier, when available |
+| `owner`                  | Original owner information returned by Notion  |
+
+This allows applications to access useful workspace and integration metadata without requiring another API request.
+
+**Important:** Notion's `GET /v1/users/me` endpoint returns the integration's bot user, not the person who authorized the integration. Authula uses `owner.user` from the OAuth token response instead.
+
+#### Refresh tokens
+
+Notion supports refresh tokens.
+
+- The authorization response includes an access token and a refresh token.
+- Refresh tokens are used to obtain new access tokens.
+- Refreshing a token also returns a new refresh token, replacing the previous one.
+
+Make sure to persist the latest refresh token whenever a token refresh occurs. Notion refresh tokens should be treated as rotating credentials.
+
+</Step>
+
+<Step>
+
+### Test the integration
+
+1. Start your Authula server.
+2. In your webapp, create a button that navigates the user to:
+
+   ```bash
+   # Replace localhost with your Authula server URL in production.
+   http://localhost:8080/api/auth/oauth2/authorize/notion?redirect_to=<YOUR_REDIRECT_URL>
+   ```
+
+3. You should be redirected to Notion's authorization page.
+4. Select the Notion workspace you want to connect.
+5. Select the pages and databases you want to share with your integration.
+6. Click **Allow access** to authorize the integration.
+7. Notion redirects the user back to Authula, which exchanges the authorization code, retrieves the authorizing user's information from the token response, and completes authentication.
+
+**Note:** Authorizing a Notion integration does not automatically grant access to every page in the workspace. Only the pages and databases selected during authorization are shared with the integration. Users can manage these permissions later through Notion's connection settings.
+
+</Step>
+</Steps>
+
+### Additional resources
+
+- [Notion OAuth Authorization Guide](https://developers.notion.com/guides/authorization/overview)
+- [Notion Create a Token API Reference](https://developers.notion.com/reference/create-a-token)
+- [Notion Refresh a Token API Reference](https://developers.notion.com/reference/refresh-a-token)
+- [Notion User Object Reference](https://developers.notion.com/reference/user)
+- [Notion Developer Portal](https://developers.notion.com/)

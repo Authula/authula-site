@@ -1,4 +1,4 @@
 {
   "icon": "FingerprintPattern",
-  "pages": ["discord", "dropbox", "github", "google", "microsoft"]
+  "pages": ["discord", "dropbox", "github", "google", "microsoft", "notion"]
 }
