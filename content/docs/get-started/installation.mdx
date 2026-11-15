@@ -26,8 +26,8 @@ app_name = "Authula"
 # Base URL for the application (used as the base url of the API and for redirects, emails, etc.)
 base_url = "http://localhost:8080"
 
-# Base Path for API endpoints (e.g., "/auth")
-base_path = "/auth"
+# Base Path for API endpoints (e.g., "/api/auth")
+base_path = "/api/auth"
 
 # Used for encryption. Generate using `openssl rand -base64 32`.
 # NOTE: It is recommended to set this via the AUTHULA_SECRET environment variable instead of hardcoding it here for better security.
@@ -177,10 +177,16 @@ buffer_size = 100
 # Required for OAuth2 plugin
 DISCORD_CLIENT_ID=
 DISCORD_CLIENT_SECRET=
+DROPBOX_CLIENT_ID=
+DROPBOX_CLIENT_SECRET=
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+MICROSOFT_CLIENT_ID=
+MICROSOFT_CLIENT_SECRET=
+NOTION_CLIENT_ID=
+NOTION_CLIENT_SECRET=
 
 # Required depending on the plugin being used and their providers
 POSTGRES_URL=

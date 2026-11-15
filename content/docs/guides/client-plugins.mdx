@@ -163,7 +163,7 @@ import { createClient } from "authula";
 import { EmailPasswordPlugin, BearerPlugin, CSRFPlugin } from "authula/plugins";
 
 const client = createClient({
-  url: "http://localhost:8080/auth",
+  url: "http://localhost:8080/api/auth",
   plugins: [
     new EmailPasswordPlugin(),
     new BearerPlugin(),
