@@ -1,0 +1,60 @@
+---
+title: New Update - v1.51.0
+date: 2026-11-16
+version: v1.51.0
+type: feature
+---
+
+## What's New
+
+- chore: Updated to Go v1.27.4
+- chore: Removed non-existent commands from Makefile
+- chore: Updated github CI to trigger only on Go related files
+- docs(agents): align skills with sentinel errors and core paths (#166)
+- fix(oauth2): map missing session during callback (#165)
+- fix(totp): map missing verification to invalid pending token (#164)
+- fix(magic-link): map missing verification to invalid token (#163)
+- fix(jwt): reject refresh tokens for missing sessions (#162)
+- fix(session): return session-not-found sentinel from validation (#161)
+- fix(email-password): return 400 for invalid or expired tokens (#160)
+- fix(core): map missing sessions in /me and sign-out (#159)
+- test(services): cover session and verification sentinel pass-through (#158)
+- refactor(repositories): return sentinels for missing session and verification (#156)
+- refactor(core): add sentinel errors for missing session and verification (#155)
+- fix(oauth2): map the full Notion token response (#153)
+- fix: aggregate test coverage across all packages (#154)
+- feat(oauth2): request offline access for Dropbox by default (#152)
+- feat(oauth2): support configurable authorization URL parameters (#151)
+- feat(oauth2): add Notion provider (#150)
+- chore: configure Codecov upload and enforce 80% coverage target
+- feat(oauth2): add Dropbox OIDC provider (#142)
+- chore: Added tests with code coverage to github CI
+- refactor: Renamed Google OAuth2 provider to make it consistent with other providers (#149)
+- test: centralize test helpers and drop pointer helpers (#148)
+- refactor(oauth2): migrate outbound flow state to database (#138)
+- chore: Updated DecodeSecret function comment
+- refactor: Decode secrets once at config load (#141)
+- docs: Updated contributing guide and added a PR template
+- feat: Added Microsoft Entra ID provider to OAuth2 plugin (#135)
+- feat: harden token encryption with versioned keyring (#139)
+- chore: Added unit tests for token service
+- docs: Added OAuth2 + OIDC markdown docs to OAuth2 plugin to reference RFCs
+- docs: Updated use-cases-and-orchestration SKILL.md
+- chore: Removed GetQueryBool from util/params.go
+- feat(oauth2): add authorization server schema and repositories (#136)
+
+---
+
+## Get Started
+
+### Standalone Mode
+
+```bash
+$ docker pull ghcr.io/authula/authula:v1.51.0
+```
+
+### Library Mode
+
+```bash
+$ go get github.com/Authula/authula@v1.51.0
+```
